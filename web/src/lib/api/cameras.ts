@@ -10,6 +10,7 @@ export interface CameraTranscodingConfig {
   target_codec: string;
   preset: string;
   bitrate: string;
+  crf?: number;
 }
 
 export interface Camera {
@@ -130,6 +131,7 @@ export interface CreateCameraRequest {
   stream_encoding?: string;
   transcoding?: CameraTranscodingConfig;
   channel?: string;
+  audio_enabled?: boolean;
   // Push/ingest fields (SRT/RTMP)
   stream_key?: string;
   srt_passphrase?: string;
@@ -139,6 +141,8 @@ export interface CreateCameraRequest {
   push_retention_days?: number | null;
   // Xiaomi two-way audio
   two_way_audio_enabled?: boolean;
+  enabled?: boolean;
+  retention_days?: number;
 }
 
 export interface UpdateCameraRequest {
@@ -159,6 +163,7 @@ export interface UpdateCameraRequest {
   stream_encoding?: string;
   transcoding?: CameraTranscodingConfig;
   channel?: string;
+  audio_enabled?: boolean;
   // Push/ingest fields (SRT/RTMP)
   stream_key?: string;
   srt_passphrase?: string;
@@ -177,6 +182,9 @@ export interface DiscoveredDevice {
   scopes: string[];
   hardware: string;
   endpoint: string;
+  manufacturer?: string;
+  model?: string;
+  firmware?: string;
 }
 
 export interface DiscoveryError {
@@ -190,6 +198,13 @@ export interface DeviceInfo {
   firmware: string;
   serial_number: string;
   hardware_id: string;
+}
+
+export interface ONVIFDeviceDetail {
+  hardware: string;
+  manufacturer: string;
+  model: string;
+  firmware: string;
 }
 
 export interface DiscoveryResult {

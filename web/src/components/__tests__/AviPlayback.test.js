@@ -37,9 +37,17 @@ describe('AviPlayback', () => {
     onclose = null;
     readyState = 0;
     sentMessages = [];
+    bufferedAmount = 0;
+    extensions = '';
+    protocol = '';
+    url = '';
+    addEventListener = () => {};
+    removeEventListener = () => {};
+    dispatchEvent = () => true;
 
     constructor(_url) {
       mockSocket = this;
+      this.url = typeof _url === 'string' ? _url : String(_url);
       setTimeout(() => {
         this.readyState = 1;
         if (this.onopen) this.onopen(new Event('open'));
@@ -54,7 +62,10 @@ describe('AviPlayback', () => {
       this.sentMessages.push(data);
     }
 
-    static get OPEN() { return 1; }
+    static CONNECTING = 0;
+    static OPEN = 1;
+    static CLOSING = 2;
+    static CLOSED = 3;
 
     sendBinaryFrame(type, pts, data) {
       const buf = new ArrayBuffer(13 + data.length);
@@ -71,8 +82,9 @@ describe('AviPlayback', () => {
 
   beforeEach(() => {
     mockSocket = null;
-    globalThis.WebSocket = MockWebSocket;
+    globalThis.WebSocket = /** @type {typeof WebSocket} */ (/** @type {unknown} */ (MockWebSocket));
   });
+
 
   afterEach(() => {
     delete globalThis.WebSocket;

@@ -39,7 +39,10 @@
   let hasActiveCoordinatedReconnect = false;
 
   function coordinatedReconnect(reconnectFn: () => void) {
-    if (coordinatedTimer) { clearTimeout(coordinatedTimer); coordinatedTimer = null; }
+    if (coordinatedTimer) {
+      clearTimeout(coordinatedTimer);
+      coordinatedTimer = null;
+    }
     if (!coordinator) {
       reconnectFn();
       return;
@@ -59,7 +62,7 @@
     }
     // If -1, queued — callback will fire when slot opens
   }
-  let streamState: StreamState | 'loading' = $state('loading');
+  let streamState = $state<StreamState | 'loading'>('loading');
   let videoEl: HTMLVideoElement | undefined = $state();
   let hlsInstance: any = null;
   let HlsConstructor: any = null;
@@ -83,7 +86,10 @@
   }
 
   function clearFreezeFrame() {
-    if (freezeClearTimer) { clearTimeout(freezeClearTimer); freezeClearTimer = null; }
+    if (freezeClearTimer) {
+      clearTimeout(freezeClearTimer);
+      freezeClearTimer = null;
+    }
     showFrozenFrame = false;
     freezeClearTimer = setTimeout(() => {
       frozenFrameUrl = null;
@@ -133,21 +139,17 @@
     if (id !== cameraId || !hlsInstance || !HlsConstructor || !videoEl) return;
     captureFreezeFrame();
     const config = buildErrorConfig();
-    const newHls = destroyAndRecreate(
-      hlsInstance,
-      HlsConstructor,
-      videoEl,
-      streamUrl,
-      config,
-      recreateAttempts,
-    );
+    const newHls = destroyAndRecreate(hlsInstance, HlsConstructor, videoEl, streamUrl, config, recreateAttempts);
     if (newHls) {
       hlsInstance = newHls;
     }
   }
 
   function handleReconnect() {
-    if (autoRetry) { autoRetry.clear(); autoRetry = null; }
+    if (autoRetry) {
+      autoRetry.clear();
+      autoRetry = null;
+    }
     captureFreezeFrame();
     recreateAttempts.value = 0;
     streamState = 'loading';
@@ -192,11 +194,16 @@
       zombieCleanup();
       zombieCleanup = null;
     }
-    if (autoRetry) { autoRetry.clear(); autoRetry = null; }
+    if (autoRetry) {
+      autoRetry.clear();
+      autoRetry = null;
+    }
     if (hlsInstance) {
       try {
         hlsInstance.destroy();
-      } catch (e) { console.warn('HLS destroy error (already destroyed?):', e); }
+      } catch (e) {
+        console.warn('HLS destroy error (already destroyed?):', e);
+      }
       hlsInstance = null;
     }
     HlsConstructor = null;
@@ -242,9 +249,10 @@
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         videoEl?.play().catch(() => {});
       });
-    } catch (e) { console.warn('HLS init failed:', e);
-streamState = 'error';
-}
+    } catch (e) {
+      console.warn('HLS init failed:', e);
+      streamState = 'error';
+    }
   }
 
   // Main lifecycle effect — reinit when streamUrl changes
@@ -278,9 +286,16 @@ streamState = 'error';
     if (!visible) {
       // Tab hidden — destroy HLS to release decode/network resources
       if (hlsInstance && !destroyed) {
-        try { hlsInstance.destroy(); } catch { /* ignore */ }
+        try {
+          hlsInstance.destroy();
+        } catch {
+          /* ignore */
+        }
         hlsInstance = null;
-        if (zombieCleanup) { zombieCleanup(); zombieCleanup = null; }
+        if (zombieCleanup) {
+          zombieCleanup();
+          zombieCleanup = null;
+        }
       }
     } else {
       // Tab visible — resume: rebuild HLS stream
@@ -295,18 +310,22 @@ streamState = 'error';
 
   onDestroy(() => {
     destroyed = true;
-    if (coordinatedTimer) { clearTimeout(coordinatedTimer); coordinatedTimer = null; }
+    if (coordinatedTimer) {
+      clearTimeout(coordinatedTimer);
+      coordinatedTimer = null;
+    }
     if (coordinator) coordinator.cancelRequest(cameraId);
-    if (freezeClearTimer) { clearTimeout(freezeClearTimer); freezeClearTimer = null; }
+    if (freezeClearTimer) {
+      clearTimeout(freezeClearTimer);
+      freezeClearTimer = null;
+    }
     frozenFrameUrl = null;
     destroyCurrentHls();
     destroyCurrentHls();
   });
 
   // --- Derived ---
-  let showOverlay = $derived(
-    streamState === 'loading' || streamState === 'error' || streamState === 'buffering',
-  );
+  let showOverlay = $derived(streamState === 'loading' || streamState === 'error' || streamState === 'buffering');
   let overlayClass = $derived(
     streamState === 'loading'
       ? 'opacity-100'
@@ -344,7 +363,9 @@ streamState = 'error';
     <img
       src={frozenFrameUrl}
       alt=""
-      class="absolute inset-0 w-full h-full object-contain transition-opacity duration-300 {showFrozenFrame ? 'opacity-100' : 'opacity-0 pointer-events-none'}"
+      class="absolute inset-0 w-full h-full object-contain transition-opacity duration-300 {showFrozenFrame
+        ? 'opacity-100'
+        : 'opacity-0 pointer-events-none'}"
       aria-hidden="true"
     />
   {/if}
@@ -362,9 +383,7 @@ streamState = 'error';
   </video>
 
   <!-- Overlay layer with CSS transition -->
-  <div
-    class="absolute inset-0 flex items-center justify-center transition-opacity duration-200 {overlayClass}"
-  >
+  <div class="absolute inset-0 flex items-center justify-center transition-opacity duration-200 {overlayClass}">
     {#if streamState === 'loading'}
       <!-- Shimmer loading animation -->
       <div class="absolute inset-0 overflow-hidden">
@@ -397,15 +416,10 @@ streamState = 'error';
   </div>
 
   <!-- Stream state indicator dot (top-left) -->
-  <span
-    class="absolute top-2 left-2 w-2 h-2 {dotColor} rounded-full z-10"
-    title={dotTitle}
-  ></span>
+  <span class="absolute top-2 left-2 w-2 h-2 {dotColor} rounded-full z-10" title={dotTitle}></span>
 
   <!-- Camera name + status bar (bottom) -->
-  <div
-    class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-3 py-2 z-10"
-  >
+  <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-3 py-2 z-10">
     <div class="flex items-center gap-2">
       <span class="text-white text-sm font-medium truncate">{cameraName || cameraId}</span>
     </div>

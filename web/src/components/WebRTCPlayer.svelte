@@ -49,8 +49,8 @@
   }
   type WebrtcState = 'connecting' | 'connected' | 'disconnected' | 'failed';
 
-  let streamState: StreamState | 'loading' = $state('loading');
-  let webrtcState: WebrtcState = $state('connecting');
+  let streamState = $state<StreamState | 'loading'>('loading');
+  let webrtcState = $state<WebrtcState>('connecting');
   let videoEl: HTMLVideoElement | undefined = $state();
   let pc: RTCPeerConnection | null = null;
   let sessionUrl: string | null = null;

@@ -72,7 +72,7 @@ export function detectMSEH265(): boolean {
 
 /** Check if WebGPU API is available. */
 export function detectWebGPU(): boolean {
-  return typeof navigator !== 'undefined' && (navigator as Record<string, unknown>).gpu !== undefined;
+  return typeof navigator !== 'undefined' && (navigator as unknown as Record<string, unknown>).gpu !== undefined;
 }
 
 /** Check if WebGL2 is available by attempting context creation. */

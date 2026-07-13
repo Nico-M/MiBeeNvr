@@ -67,7 +67,7 @@
     class="relative h-2 th-bg-tertiary rounded cursor-pointer group"
     onclick={handleClick}
     onkeydown={(e) => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClick(); }
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); ontoggleplay(); }
       else if (e.key === 'ArrowLeft') { e.preventDefault(); onprev(); }
       else if (e.key === 'ArrowRight') { e.preventDefault(); onnext(); }
       else if (e.key === 'Home') { e.preventDefault(); onsetspeed(1); }

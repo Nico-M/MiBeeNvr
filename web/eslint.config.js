@@ -25,6 +25,13 @@ export default [
         IntersectionObserver: true,
         btoa: true,
         atob: true,
+        Headers: true,
+        Response: true,
+        caches: true,
+        Event: true,
+        MessageEvent: true,
+        WebSocket: true,
+        process: true,
       },
     },
     rules: {

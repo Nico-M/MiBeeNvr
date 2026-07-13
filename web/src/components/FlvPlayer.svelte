@@ -49,7 +49,7 @@
       }, delay);
     }
   }
-  let streamState: StreamState | 'loading' = $state('loading');
+  let streamState = $state<StreamState | 'loading'>('loading');
   let videoEl: HTMLVideoElement | undefined = $state();
   let mpegtsPlayer: any = null;
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -274,8 +274,7 @@ let videoEventAc: AbortController | null = null;
         seekType: 'range',
         liveBufferLatencyChasing: true,
         liveBufferLatencyChasingOnPaused: true,
-        liveSyncDurationCount: 3,
-        liveMaxLatencyDurationCount: 6,
+        ...({ liveSyncDurationCount: 3, liveMaxLatencyDurationCount: 6 } as Record<string, number>),
       });
 
       mpegtsPlayer = player;
@@ -284,7 +283,14 @@ let videoEventAc: AbortController | null = null;
 
       player.attachMediaElement(videoEl);
       player.load();
-      player.play().catch(() => {});
+      try {
+        const result = player.play();
+        if (result && typeof (result as Promise<void>).catch === 'function') {
+          (result as Promise<void>).catch(() => {});
+        }
+      } catch {
+        // Ignore play() errors
+      }
 
       player.on(mpegts.default.Events.ERROR, (_event: string, data: any) => {
         console.warn('mpegts.js error:', data);
@@ -296,7 +302,14 @@ let videoEventAc: AbortController | null = null;
             player.pause();
             player.unload();
             player.load();
-            player.play().catch(() => {});
+            try {
+              const result = player.play();
+              if (result && typeof (result as Promise<void>).catch === 'function') {
+                (result as Promise<void>).catch(() => {});
+              }
+            } catch {
+              // Ignore play() errors
+            }
           } catch {
             scheduleReconnect();
           }

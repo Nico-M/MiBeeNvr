@@ -5,10 +5,10 @@
  */
 
 import { getCredentials } from '$lib/api';
-import type Hls from 'hls.js';
+import type { HlsConfig } from 'hls.js';
 
 /** RPi-optimized hls.js configuration. When protocol is 'll-hls', returns LL-HLS tuned config. */
-export function createHlsConfig(protocol: string = 'hls'): Partial<Hls.Config> {
+export function createHlsConfig(protocol: string = 'hls'): Partial<HlsConfig> {
   const baseConfig = {
     enableWorker: false,
     liveDurationInfinity: true,

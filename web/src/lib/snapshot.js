@@ -26,9 +26,9 @@ export async function fetchSnapshot({
   onUnsupported,
 }) {
   const creds = getCredentials();
-  const headers = {};
+  const headers = new Headers();
   if (creds) {
-    headers['Authorization'] = 'Basic ' + btoa(`${creds.username}:${creds.password}`);
+    headers.set('Authorization', 'Basic ' + btoa(`${creds.username}:${creds.password}`));
   }
 
   try {

@@ -246,10 +246,9 @@
     {#if total > pageSize}
       <div class="mt-4 flex justify-center">
         <Pagination
-          total={total}
-          limit={pageSize}
-          offset={page * pageSize}
-          onPageChange={(newPage: number) => { page = newPage; loadData(); }}
+          currentPage={page + 1}
+          totalPages={Math.ceil(total / pageSize)}
+          onPageChange={(newPage: number) => { page = newPage - 1; loadData(); }}
         />
       </div>
     {/if}

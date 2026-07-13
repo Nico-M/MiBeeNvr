@@ -73,10 +73,10 @@ export function getChartThemeColors() {
 
 /**
  * Create the storage trend line chart.
- * @param {import('chart.js')} Chart - Chart constructor
+ * @param {new (item: HTMLCanvasElement, config: unknown) => unknown} Chart - Chart constructor
  * @param {HTMLCanvasElement} canvas
  * @param {{ date: string; total_size: number }[]} trends
- * @returns {import('chart.js').Chart | null}
+ * @returns {unknown}
  */
 export function createTrendChart(Chart, canvas, trends) {
   if (!canvas) return null;

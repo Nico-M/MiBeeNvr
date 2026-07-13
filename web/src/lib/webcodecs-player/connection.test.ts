@@ -236,7 +236,7 @@ describe('disconnect', () => {
     simulateOpen();
     cm.disconnect();
     vi.advanceTimersByTime(10000);
-    expect((cm as { _zombieCheckTimer: ReturnType<typeof setInterval> | null })._zombieCheckTimer).toBeNull();
+    expect((cm as unknown as { _zombieCheckTimer: ReturnType<typeof setInterval> | null })._zombieCheckTimer).toBeNull();
   });
 
   it('should be safe to call when not connected', () => {
@@ -331,7 +331,7 @@ describe('destroy', () => {
     cm.connect();
     simulateOpen();
     cm.destroy();
-    expect((cm as { _zombieCheckTimer: ReturnType<typeof setInterval> | null })._zombieCheckTimer).toBeNull();
+    expect((cm as unknown as { _zombieCheckTimer: ReturnType<typeof setInterval> | null })._zombieCheckTimer).toBeNull();
   });
 
   it('should remove visibility handler', () => {
@@ -767,7 +767,7 @@ describe('zombie detection', () => {
     cm.connect();
     simulateOpen();
     simulateClose(getLastWS(), 1000);
-    expect((cm as { _zombieCheckTimer: ReturnType<typeof setInterval> | null })._zombieCheckTimer).toBeNull();
+    expect((cm as unknown as { _zombieCheckTimer: ReturnType<typeof setInterval> | null })._zombieCheckTimer).toBeNull();
   });
 
   it('should not run zombie check when WebSocket is not open', () => {

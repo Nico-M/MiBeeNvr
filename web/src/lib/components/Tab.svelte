@@ -1,11 +1,16 @@
 <script lang="ts">
-  import type { Component } from 'svelte';
+  import type { SvelteComponent } from 'svelte';
 
-  interface TabItem {
+  // Lucide-svelte icons are Svelte 4-style component classes. We accept any
+  // Svelte component constructor (both Svelte 4 SvelteComponent subclasses and
+  // Svelte 5 function components) so the Tab interface stays flexible.
+  export type TabIcon = typeof SvelteComponent<{ size?: number | string; class?: string }>;
+
+  export interface TabItem {
     id: string;
     label: string;
     shortLabel?: string;
-    icon?: Component;
+    icon?: TabIcon;
     count?: number;
   }
 
@@ -18,10 +23,9 @@
   let { tabs, activeTab, onchange }: Props = $props();
 
   let activeIndex = $derived(tabs.findIndex(t => t.id === activeTab));
-  let indicatorStyle = $derived({
-    left: `${(activeIndex * 100) / tabs.length}%`,
-    width: `${100 / tabs.length}%`
-  });
+  let indicatorStyle = $derived(
+    `left: ${(activeIndex * 100) / tabs.length}%; width: ${100 / tabs.length}%`
+  );
 </script>
 
 <div class="tab-bar flex" role="tablist">

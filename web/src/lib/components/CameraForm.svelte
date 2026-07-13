@@ -38,6 +38,7 @@
     import PresetManager from '$lib/components/PresetManager.svelte';
     import ONVIFEvents from '$lib/components/ONVIFEvents.svelte';
     import DeviceManagement from '$lib/components/DeviceManagement.svelte';
+    import PushTargetStatus from '$lib/components/PushTargetStatus.svelte';
     import { startBackfill, getUntranscodedRecordingCount } from '$lib/api/transcoding';
     import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
   interface Props {

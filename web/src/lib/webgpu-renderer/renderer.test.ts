@@ -48,7 +48,6 @@ let renderPassEncoder: {
 let commandBuffer: {};
 let commandEncoder: {
   beginRenderPass: ReturnType<typeof vi.fn>;
-  copyExternalImageToTexture: ReturnType<typeof vi.fn>;
   finish: ReturnType<typeof vi.fn>;
 };
 let canvasContext: {
@@ -60,12 +59,13 @@ let device: {
   createShaderModule: ReturnType<typeof vi.fn>;
   createRenderPipeline: ReturnType<typeof vi.fn>;
   createBindGroupLayout: ReturnType<typeof vi.fn>;
+  createPipelineLayout: ReturnType<typeof vi.fn>;
   createSampler: ReturnType<typeof vi.fn>;
   createBindGroup: ReturnType<typeof vi.fn>;
   createCommandEncoder: ReturnType<typeof vi.fn>;
   createTexture: ReturnType<typeof vi.fn>;
   importExternalTexture: ReturnType<typeof vi.fn>;
-  queue: { submit: ReturnType<typeof vi.fn> };
+  queue: { submit: ReturnType<typeof vi.fn>; copyExternalImageToTexture: ReturnType<typeof vi.fn> };
   destroy: ReturnType<typeof vi.fn>;
   lost: { then: ReturnType<typeof vi.fn> };
 };
@@ -105,7 +105,6 @@ function setupMocks() {
   commandBuffer = {};
   commandEncoder = {
     beginRenderPass: vi.fn().mockReturnValue(renderPassEncoder),
-    copyExternalImageToTexture: vi.fn(),
     finish: vi.fn().mockReturnValue(commandBuffer),
   };
 
@@ -120,6 +119,7 @@ function setupMocks() {
     createShaderModule: vi.fn().mockReturnValue({}),
     createRenderPipeline: vi.fn().mockImplementation(() => createMockPipeline()),
     createBindGroupLayout: vi.fn().mockReturnValue({}),
+    createPipelineLayout: vi.fn().mockReturnValue({}),
     createSampler: vi.fn().mockReturnValue({}),
     createBindGroup: vi.fn().mockReturnValue({}),
     createCommandEncoder: vi.fn().mockReturnValue(commandEncoder),
@@ -137,7 +137,7 @@ function setupMocks() {
       externalTextures.push(ext);
       return ext;
     }),
-    queue: { submit: vi.fn() },
+    queue: { submit: vi.fn(), copyExternalImageToTexture: vi.fn() },
     destroy: vi.fn(),
     lost: { then: vi.fn() },
   };
@@ -210,6 +210,7 @@ describe('WebGPURenderer', () => {
       expect(device.createShaderModule).toHaveBeenCalledTimes(2);
       expect(device.createRenderPipeline).toHaveBeenCalledTimes(2);
       expect(device.createBindGroupLayout).toHaveBeenCalledTimes(2);
+      expect(device.createPipelineLayout).toHaveBeenCalledTimes(2);
       expect(device.createSampler).toHaveBeenCalledTimes(1);
       renderer.destroy();
     });
@@ -303,15 +304,17 @@ describe('WebGPURenderer', () => {
       renderer.destroy();
     });
 
-    it('destroys GPUExternalTexture after each render', async () => {
+    it('releases GPUExternalTexture reference after each render', async () => {
       const renderer = new WebGPURenderer();
       await renderer.init(document.createElement('canvas'));
 
       renderer.render(createMockVideoFrame());
       await vi.advanceTimersByTimeAsync(17);
 
+      // GPUExternalTexture lifecycle is owned by the source VideoFrame —
+      // no explicit destroy() per MDN spec. We only verify a new texture
+      // was created for this frame.
       expect(externalTextures.length).toBe(1);
-      expect(externalTextures[0].destroy).toHaveBeenCalledTimes(1);
       renderer.destroy();
     });
 
@@ -422,7 +425,7 @@ describe('WebGPURenderer', () => {
 
       expect(device.importExternalTexture).toHaveBeenCalled();
       expect(device.createTexture).toHaveBeenCalledWith(expect.objectContaining({ size: [1280, 720] }));
-      expect(commandEncoder.copyExternalImageToTexture).toHaveBeenCalledWith(
+      expect(device.queue.copyExternalImageToTexture).toHaveBeenCalledWith(
         expect.objectContaining({ source: frame }),
         expect.objectContaining({ texture: expect.any(Object) }),
         expect.arrayContaining([1280, 720]),

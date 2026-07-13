@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { listCameras, deleteCamera, startCamera, stopCamera, updateCamera, xiaomiDevices, listProtocols, DEFAULT_PROTOCOLS, buildProtocolsMap, ApiRequestError, listArchives, setArchiveRetention, deleteArchiveGroup, listArchiveRecordings, deleteArchiveRecording, getHealthStatus, getTranscodingStatus, getTranscodingSettings, getTranscodingCheck, getCameraRecordingStats, rediscoverCamera } from '$lib/api';
   import type { Camera, XiaomiDevice, ProtocolInfo, ArchiveGroup, Recording, CameraHealth, HealthStatusResponse } from '$lib/api';
   import { t } from '$lib/i18n';
@@ -13,6 +13,7 @@
   import ArchiveConfirmDialog from '$lib/components/ArchiveConfirmDialog.svelte';
   import OnboardingOverlay from '$lib/components/OnboardingOverlay.svelte';
   import Tab from '$lib/components/Tab.svelte';
+  import type { TabItem } from '$lib/components/Tab.svelte';
   import Pagination from '../components/Pagination.svelte';
   import { startBackfill, getUntranscodedRecordingCount } from '$lib/api/transcoding';
 
@@ -40,6 +41,7 @@
   let selectedArchiveGroup = $state<ArchiveGroup | null>(null);
   let retentionDays = $state(30);
   let healthData = $state<Record<string, CameraHealth>>({});
+  let healthInterval: ReturnType<typeof setInterval> | null = null;
 
   // Form state
   let showForm = $state(false);
@@ -73,7 +75,7 @@
   // Onboarding state
   let showOnboarding = $state(false);
 
-  let tabItems = $derived([
+  let tabItems = $derived<TabItem[]>([
     { id: 'active', label: t('cameras.tab.active'), icon: CameraIcon, count: cameras.length },
     { id: 'archived', label: t('cameras.tab.archived'), icon: ArchiveIcon, count: archives.length },
   ]);
@@ -441,8 +443,11 @@
       }
     } catch (e) { /* Transcoding may not be available */ }
 
-    const healthInterval = window.setInterval(() => loadHealth(), 30000);
-    return () => clearInterval(healthInterval);
+    healthInterval = window.setInterval(() => loadHealth(), 30000);
+  });
+
+  onDestroy(() => {
+    if (healthInterval) clearInterval(healthInterval);
   });
 </script>
 

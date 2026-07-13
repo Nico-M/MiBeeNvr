@@ -50,7 +50,7 @@
   let browserSupportsWasm = $state(false);
   let wasmUnavailableReason: string | null = $state(null);
 
-  let protocolOptions = [
+  let protocolOptions: ProtocolOption[] = [
 	{ id: 'wasm', label: 'WebCodecs', latency: '<100ms', viewers: t('live.protocol.viewers.webrtc'), resource: t('live.protocol.resource.webrtc') },
 	{ id: 'webrtc', label: 'WebRTC', latency: t('live.protocol.latency.webrtc'), viewers: t('live.protocol.viewers.webrtc'), resource: t('live.protocol.resource.webrtc') },
 	{ id: 'flv', label: 'HTTP-FLV', latency: t('live.protocol.latency.flv'), viewers: t('live.protocol.viewers.flv'), resource: t('live.protocol.resource.flv') },

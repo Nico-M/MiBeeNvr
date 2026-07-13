@@ -109,6 +109,14 @@
     window.location.hash = '#/cameras';
   }
 
+  // Listen for custom 'shrink' event dispatched by player components
+  $effect(() => {
+    if (!playerContainer) return;
+    const handler = () => goBack();
+    playerContainer.addEventListener('shrink', handler);
+    return () => playerContainer.removeEventListener('shrink', handler);
+  });
+
   function toggleFullscreen() {
     if (!playerContainer) return;
     try {
@@ -246,7 +254,6 @@
             class="card border th-border overflow-hidden"
             style="max-height: 80vh;"
             bind:this={playerContainer}
-            onshrink={() => goBack()}
           >
             {#if switchingProtocol}
               <!-- Switching state -->

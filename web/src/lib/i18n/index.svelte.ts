@@ -6,7 +6,7 @@
 import zh from './zh.json';
 import en from './en.json';
 
-type Translations = Record<string, string>;
+type Translations = Record<string, unknown>;
 
 const locales: Record<string, Translations> = { zh, en };
 
@@ -38,22 +38,22 @@ export function t(key: string, params?: Record<string, string | number>): string
   // Read state.currentLang ($state) and USE the value — compiler cannot optimize away
   const lang = state.currentLang;
   const dict = locales[lang] || locales['en'];
-  let value = dict[key];
+  let value: unknown = dict[key];
 
   if (value === undefined) {
     // Fallback to English
     value = locales['en'][key];
   }
 
-  if (value === undefined) {
+  if (value === undefined || typeof value !== 'string') {
     return key;
   }
 
   if (params) {
     for (const [k, v] of Object.entries(params)) {
-      value = value.replace(`{${k}}`, String(v));
+      value = (value as string).replace(`{${k}}`, String(v));
     }
   }
 
-  return value;
+  return value as string;
 }

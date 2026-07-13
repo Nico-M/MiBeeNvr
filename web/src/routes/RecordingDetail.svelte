@@ -18,7 +18,7 @@
     ApiRequestError
   } from '$lib/api';
   import type { ManagerStatus, TranscodeTask } from '$lib/api/transcoding';
-  import { enqueueTranscodeTask, getTranscodingTasks } from '$lib/api/transcoding';
+  import { enqueueTranscodeTask, getTranscodingTasks, getTranscodingStatus } from '$lib/api/transcoding';
   import type { Recording, TimelapseFrame, TimelapsePreviewFrame } from '$lib/api';
   import { formatDate, formatDuration, formatFileSize } from '$lib/format';
   import { AlertTriangle, HelpCircle, SkipForward, Loader2, RefreshCw, Play, Pause, ChevronLeft, ChevronRight } from 'lucide-svelte';
@@ -1326,7 +1326,7 @@ $effect(() => {
               {/if}
 
               <!-- Merge controls -->
-              {#if recording.merge_status !== 'merged' && !mergeInProgress}
+              {#if (recording.merge_status as string) !== 'merged' && !mergeInProgress}
                 <div class="th-bg-secondary px-4 py-3 border-t th-border">
                   <div class="flex items-center justify-center gap-3">
                     <select

@@ -34,7 +34,7 @@ import { WebGPURenderer } from '$lib/webgpu-renderer';
 
   type PlayerState = StreamState | 'loading' | 'disconnected' | 'offline';
 
-  let streamState: PlayerState = $state('loading');
+  let streamState = $state<PlayerState>('loading');
   let canvasEl: HTMLCanvasElement | undefined = $state();
   let unsupportedMsg: string | null = $state(null);
   let destroyed = false;

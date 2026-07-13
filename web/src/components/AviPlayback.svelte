@@ -32,7 +32,7 @@
   }
 
   function handleVideoFrame(data: Uint8Array) {
-    const blob = new Blob([data], { type: 'image/jpeg' });
+    const blob = new Blob([data as BlobPart], { type: 'image/jpeg' });
     if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
     currentBlobUrl = URL.createObjectURL(blob);
     frameSrc = currentBlobUrl;

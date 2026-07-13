@@ -111,7 +111,7 @@ export class WebGPURenderer {
     this.canvas = canvas;
 
     try {
-      const gpu = (navigator as Record<string, unknown>).gpu as GPU | undefined;
+      const gpu = (navigator as unknown as Record<string, unknown>).gpu as GPU | undefined;
       if (!gpu) return false;
 
       const adapter = await gpu.requestAdapter();
@@ -135,8 +135,11 @@ export class WebGPURenderer {
         { binding: 1, visibility: FRAGMENT_SHADER_STAGE, texture: {} },
       ];
 
+      const externalLayout = device.createPipelineLayout({
+        bindGroupLayouts: [device.createBindGroupLayout({ entries: bindGroupLayoutEntries })],
+      });
       const pipeline = device.createRenderPipeline({
-        layout: device.createBindGroupLayout({ entries: bindGroupLayoutEntries }),
+        layout: externalLayout,
         vertex: { module: externalModule, entryPoint: 'vs' },
         fragment: {
           module: externalModule,
@@ -146,8 +149,11 @@ export class WebGPURenderer {
         primitive: { topology: 'triangle-list' },
       });
 
+      const fallbackLayout = device.createPipelineLayout({
+        bindGroupLayouts: [device.createBindGroupLayout({ entries: fallbackBindGroupLayoutEntries })],
+      });
       const fallbackPipeline = device.createRenderPipeline({
-        layout: device.createBindGroupLayout({ entries: fallbackBindGroupLayoutEntries }),
+        layout: fallbackLayout,
         vertex: { module: fallbackModule, entryPoint: 'vs' },
         fragment: {
           module: fallbackModule,
@@ -269,7 +275,7 @@ export class WebGPURenderer {
     }
 
     if (!this.useExternalTexture) {
-      this.prepareFallbackTexture(device, frame, encoder);
+      this.prepareFallbackTexture(device, frame);
     }
 
     const pass = encoder.beginRenderPass({
@@ -305,7 +311,7 @@ export class WebGPURenderer {
     }
   }
 
-  private prepareFallbackTexture(device: GPUDevice, frame: VideoFrame, encoder: GPUCommandEncoder): void {
+  private prepareFallbackTexture(device: GPUDevice, frame: VideoFrame): void {
     const w = frame.displayWidth;
     const h = frame.displayHeight;
 
@@ -322,7 +328,7 @@ export class WebGPURenderer {
       this.stagingHeight = h;
     }
 
-    encoder.copyExternalImageToTexture({ source: frame }, { texture: this.stagingTexture }, [w, h]);
+    device.queue.copyExternalImageToTexture({ source: frame }, { texture: this.stagingTexture }, [w, h]);
   }
 
   private drawExternalTexture(device: GPUDevice, frame: VideoFrame, pass: GPURenderPassEncoder): void {
@@ -344,7 +350,9 @@ export class WebGPURenderer {
       pass.setBindGroup(0, bindGroup);
       pass.draw(6);
     } finally {
-      this.externalTexture.destroy();
+      // GPUExternalTexture lifecycle is owned by the source VideoFrame;
+      // frame.close() in the render loop's finally block releases it.
+      // See https://developer.mozilla.org/en-US/docs/Web/API/GPUDevice/importExternalTexture
       this.externalTexture = null;
     }
   }

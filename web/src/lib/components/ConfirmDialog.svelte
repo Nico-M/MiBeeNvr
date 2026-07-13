@@ -29,7 +29,7 @@
   const _confirmText = $derived(confirmText ?? t('common.confirm'));
   const _cancelText = $derived(cancelText ?? t('common.cancel'));
 
-  let dialogEl: HTMLDialogElement | undefined = $state();
+  let dialogEl: HTMLDivElement | undefined = $state();
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') {

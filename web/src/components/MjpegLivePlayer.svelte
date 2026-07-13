@@ -22,7 +22,7 @@
 
   type MjpegState = 'loading' | 'playing' | 'frozen' | 'error';
 
-  let streamState: MjpegState = $state('loading');
+  let streamState = $state<MjpegState>('loading');
   let imgEl: HTMLImageElement | undefined = $state();
   let destroyed = $state(false);
   let pollTimer: ReturnType<typeof setInterval> | null = null;

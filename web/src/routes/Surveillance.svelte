@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, setContext } from 'svelte';
+  import { onMount, onDestroy, setContext } from 'svelte';
   import { getDashboardCameras, getCredentials, listProtocols, DEFAULT_PROTOCOLS, buildProtocolsMap, normalizeProtocol, getProtocolCapabilities, getHealthCameras } from '$lib/api';
   import type { Camera, ProtocolInfo } from '$lib/api';
   import { t } from '$lib/i18n';
@@ -26,6 +26,12 @@
   let tabVisible = $state(true);
 
   let ptzOpenIndex = $state(-1);
+
+  // Module-level references for onMount/onDestroy cleanup
+  let originalFetch: typeof window.fetch | null = null;
+  let visibilityHandler: (() => void) | null = null;
+  let fullscreenListener: (() => void) | null = null;
+  let cameraGrid: HTMLDivElement | undefined = $state();
 
   let allCameras = $state<Camera[]>([]);
   let configOpen = $state(false);
@@ -302,29 +308,54 @@
       console.warn('Failed to load streaming settings:', e);
     }
     document.addEventListener('fullscreenchange', handleFullscreenChange);
+    fullscreenListener = handleFullscreenChange;
 
     // Page Visibility API: pause players when tab hidden, resume when visible
-    const visibilityHandler = () => {
+    const visHandler = () => {
       tabVisible = !document.hidden;
     };
-    document.addEventListener('visibilitychange', visibilityHandler);
+    visibilityHandler = visHandler;
+    document.addEventListener('visibilitychange', visHandler);
 
     // Intercept fetch to detect backend pressure (HTTP 503 → global cooldown)
-    const originalFetch = window.fetch;
+    const origFetch = window.fetch;
+    originalFetch = origFetch;
     window.fetch = async function (...args: Parameters<typeof fetch>): Promise<Response> {
-      const response = await originalFetch.apply(this, args);
+      const response = await origFetch.apply(this, args);
       if (response.status === 503) {
         reconnectCoordinator.reportBackendPressure();
       }
       return response;
     };
 
+  });
 
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  onDestroy(() => {
+    if (fullscreenListener) {
+      document.removeEventListener('fullscreenchange', fullscreenListener);
+    }
+    if (visibilityHandler) {
       document.removeEventListener('visibilitychange', visibilityHandler);
+    }
+    if (originalFetch) {
       window.fetch = originalFetch;
-      reconnectCoordinator.dispose();
+    }
+    reconnectCoordinator.dispose();
+  });
+
+  // Listen for custom 'expand' and 'shrink' events dispatched by player components
+  $effect(() => {
+    if (!cameraGrid) return;
+    const expandHandler = (e: Event) => {
+      const ce = e as CustomEvent<{ cameraId: string }>;
+      expandToHls(ce.detail.cameraId);
+    };
+    const shrinkHandler = () => shrinkToGrid();
+    cameraGrid.addEventListener('expand', expandHandler);
+    cameraGrid.addEventListener('shrink', shrinkHandler);
+    return () => {
+      cameraGrid.removeEventListener('expand', expandHandler);
+      cameraGrid.removeEventListener('shrink', shrinkHandler);
     };
   });
 
@@ -445,8 +476,7 @@
       <!-- Camera grid -->
       <div
         class="grid gap-2 sm:gap-3 {getGridClass(cameras.length)}"
-        onexpand={(e: CustomEvent) => expandToHls(e.detail.cameraId)}
-        onshrink={(e: CustomEvent) => shrinkToGrid()}
+        bind:this={cameraGrid}
       >
         {#each cameras as camera, index}
 {@const status = getStatusBadge(camera)}

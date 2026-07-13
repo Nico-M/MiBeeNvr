@@ -2,6 +2,7 @@
  * Settings API — cleanup, webdav, merge, feature flags
  */
 import { apiRequest } from './client';
+import type { MergeConfig } from './cameras';
 
 // --- Types ---
 
@@ -27,7 +28,7 @@ export interface FLVStreamingConfig {
   enabled: boolean;
   max_viewers: number;
   idle_timeout: string;
-  gop_cache_size: number;
+  gop_cache_size?: number;
 }
 
 export interface HLSStreamingConfig {
@@ -73,7 +74,7 @@ export interface MiBeeVisionConfig {
 
 export interface SettingsConfig {
   cleanup: CleanupConfig;
-  webdav: WebDAVConfig;
+  webdav?: WebDAVConfig;
   streaming?: StreamingConfig;
   mibeevision?: MiBeeVisionConfig;
   timezone?: string; // "Local", "UTC", or IANA timezone name

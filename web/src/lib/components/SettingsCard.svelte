@@ -3,7 +3,7 @@
 
   interface Badge {
     text: string;
-    color: 'success' | 'warning' | 'danger' | 'info';
+    color: 'success' | 'warning' | 'danger' | 'info' | 'neutral';
   }
 
   interface Props {

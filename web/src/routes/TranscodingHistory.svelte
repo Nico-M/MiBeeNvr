@@ -346,7 +346,7 @@
 
  		<!-- Pagination -->
  		<Pagination
- 			{page}
+ 			currentPage={page}
  			{totalPages}
  			onPageChange={handlePageChange}
  		/>

@@ -132,7 +132,7 @@ describe('detectWebGPU', () => {
       if (origGpu) {
         Object.defineProperty(navigator, 'gpu', origGpu);
       } else {
-        delete (navigator as Record<string, unknown>).gpu;
+        delete (navigator as unknown as Record<string, unknown>).gpu;
       }
     }
   });
@@ -150,7 +150,7 @@ describe('detectWebGPU', () => {
       if (origGpu) {
         Object.defineProperty(navigator, 'gpu', origGpu);
       } else {
-        delete (navigator as Record<string, unknown>).gpu;
+        delete (navigator as unknown as Record<string, unknown>).gpu;
       }
     }
   });
@@ -161,7 +161,7 @@ describe('detectWebGPU', () => {
 // ---------------------------------------------------------------------------
 describe('detectWebGL2', () => {
   it('should return true when webgl2 context is available', () => {
-    const spy = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({} as unknown as RenderingContext);
+    const spy = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({} as unknown as GPUCanvasContext);
     expect(detectWebGL2()).toBe(true);
     expect(spy).toHaveBeenCalledWith('webgl2');
   });
@@ -260,7 +260,7 @@ describe('getPlaybackTier', () => {
       if (origGpu) {
         Object.defineProperty(navigator, 'gpu', origGpu);
       } else {
-        delete (navigator as Record<string, unknown>).gpu;
+        delete (navigator as unknown as Record<string, unknown>).gpu;
       }
     }
   });
@@ -274,13 +274,13 @@ describe('getPlaybackTier', () => {
         configurable: true,
         writable: true,
       });
-      vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({} as unknown as RenderingContext);
+      vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({} as unknown as GPUCanvasContext);
       expect(getPlaybackTier()).toBe('tier2');
     } finally {
       if (origGpu) {
         Object.defineProperty(navigator, 'gpu', origGpu);
       } else {
-        delete (navigator as Record<string, unknown>).gpu;
+        delete (navigator as unknown as Record<string, unknown>).gpu;
       }
     }
   });
@@ -301,7 +301,7 @@ describe('getPlaybackTier', () => {
       if (origGpu) {
         Object.defineProperty(navigator, 'gpu', origGpu);
       } else {
-        delete (navigator as Record<string, unknown>).gpu;
+        delete (navigator as unknown as Record<string, unknown>).gpu;
       }
     }
   });
@@ -320,7 +320,7 @@ describe('getPlaybackTier', () => {
       if (origGpu) {
         Object.defineProperty(navigator, 'gpu', origGpu);
       } else {
-        delete (navigator as Record<string, unknown>).gpu;
+        delete (navigator as unknown as Record<string, unknown>).gpu;
       }
     }
   });
@@ -341,7 +341,7 @@ describe('getPlaybackTier', () => {
       if (origGpu) {
         Object.defineProperty(navigator, 'gpu', origGpu);
       } else {
-        delete (navigator as Record<string, unknown>).gpu;
+        delete (navigator as unknown as Record<string, unknown>).gpu;
       }
     }
   });

@@ -23,7 +23,7 @@
       "$lib": ["src/lib"],
       "$lib/*": ["src/lib/*"]
     },
-    "types": ["vite/client"],
+    "types": ["vite/client", "@webgpu/types"],
     "skipLibCheck": true,
     /**
      * Typecheck JS in `.svelte` and `.js` files by default.

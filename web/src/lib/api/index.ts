@@ -101,7 +101,6 @@ export type {
   DiscoveryError,
   DiscoveryResult,
   DeviceInfo,
-  DeviceProfile,
   ONVIFDeviceDetail,
   PTZMoveRequest,
   ProtocolCapabilities,

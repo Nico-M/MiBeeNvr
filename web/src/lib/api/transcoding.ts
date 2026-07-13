@@ -119,6 +119,7 @@ export async function enqueueTranscodeTask(body: {
   camera_id: string;
   recording_id: string;
   target_codec: string;
+  replace_original?: boolean;
 }): Promise<TranscodeTask> {
   return apiRequest<TranscodeTask>('/transcoding/tasks', {
     method: 'POST',
