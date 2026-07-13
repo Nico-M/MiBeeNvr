@@ -71,3 +71,4 @@ internal/transcoding/-encoders
 .data
 
 *.dev.yaml
+.codegraph/
