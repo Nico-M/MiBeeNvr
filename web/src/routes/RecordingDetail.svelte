@@ -21,7 +21,7 @@
   import { enqueueTranscodeTask, getTranscodingTasks, getTranscodingStatus } from '$lib/api/transcoding';
   import type { Recording, TimelapseFrame, TimelapsePreviewFrame } from '$lib/api';
   import { formatDate, formatDuration, formatFileSize } from '$lib/format';
-  import { AlertTriangle, HelpCircle, SkipForward, Loader2, RefreshCw, Play, Pause, ChevronLeft, ChevronRight } from 'lucide-svelte';
+  import { AlertTriangle, HelpCircle, SkipBack, SkipForward, Loader2, RefreshCw, Play, Pause, ChevronLeft, ChevronRight } from 'lucide-svelte';
   import { t } from '$lib/i18n';
   import MjpegPlayer from '$lib/components/MjpegPlayer.svelte';
   import { showToast } from '$lib/toast';
@@ -325,6 +325,21 @@ function startMergeSse(cameraId: string, recordingId: string) {
       return resp.recordings.length > 0 ? resp.recordings[0] : null;
     } catch (e) { return null; }
   }
+  async function loadPrevRecording() {
+    if (!recording) return null;
+    try {
+      const resp = await listRecordings({
+        camera_id: recording.camera_id,
+        format: recording.format,
+        end: recording.started_at ? new Date(recording.started_at).toISOString() : undefined,
+        sort_by: 'started_at',
+        order: 'desc',
+        limit: 1,
+        offset: 0,
+      });
+      return resp.recordings.length > 0 ? resp.recordings[0] : null;
+    } catch (e) { return null; }
+  }
   async function handleVideoEnded() {
     if (videoLoop && videoEl) {
       videoEl.currentTime = 0;
@@ -332,7 +347,10 @@ function startMergeSse(cameraId: string, recordingId: string) {
       return;
     }
     const next = await loadNextRecording();
-    if (next) { isTransitioning = true; currentId = next.id; await loadRecording(); isTransitioning = false; }
+    if (next) {
+      isTransitioning = true;
+      window.location.hash = `#/recordings/${next.id}`;
+    }
   }
 
   function handleTimeUpdate(e: Event) {
@@ -352,7 +370,21 @@ function startMergeSse(cameraId: string, recordingId: string) {
 
   async function navigateToNext() {
     const next = await loadNextRecording();
-    if (next) { isTransitioning = true; currentId = next.id; await loadRecording(); isTransitioning = false; }
+    if (next) {
+      isTransitioning = true;
+      window.location.hash = `#/recordings/${next.id}`;
+    } else {
+      showToast(t('detail.noNextRecording'), 'info');
+    }
+  }
+  async function navigateToPrev() {
+    const prev = await loadPrevRecording();
+    if (prev) {
+      isTransitioning = true;
+      window.location.hash = `#/recordings/${prev.id}`;
+    } else {
+      showToast(t('detail.noPrevRecording'), 'info');
+    }
   }
 
   // --- Timeline seek (M6 DVR-style browsing) ---
@@ -1250,6 +1282,9 @@ $effect(() => {
               />
             {/if}
             <div class="flex items-center justify-between px-4 py-2 th-bg-secondary border-t th-border">
+              <button onclick={navigateToPrev} class="btn btn-ghost btn-sm flex items-center gap-1">
+                <SkipBack size={16} /> {t('detail.prevRecording')}
+              </button>
               <span class="text-sm th-text-muted">{t('detail.playing')} <span class="font-mono th-text-primary">{recording.camera_id}</span></span>
               <button onclick={navigateToNext} class="btn btn-ghost btn-sm flex items-center gap-1">
                 {t('detail.nextRecording')} <SkipForward size={16} />

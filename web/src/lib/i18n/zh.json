@@ -124,6 +124,8 @@
   "detail.playing": "正在播放",
   "detail.nextRecording": "下一段录像",
   "detail.noNextRecording": "没有下一段录像",
+  "detail.prevRecording": "上一段录像",
+  "detail.noPrevRecording": "没有上一段录像",
   "detail.fullscreen": "全屏",
   "detail.timestamp": "时间戳",
   "detail.speed20x": "20倍",

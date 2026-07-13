@@ -124,6 +124,8 @@
   "detail.playing": "Playing",
   "detail.nextRecording": "Next recording",
   "detail.noNextRecording": "No next recording",
+  "detail.prevRecording": "Previous recording",
+  "detail.noPrevRecording": "No previous recording",
   "detail.fullscreen": "Fullscreen",
   "detail.timestamp": "Timestamp",
   "detail.speed20x": "20x",
