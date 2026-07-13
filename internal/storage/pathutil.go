@@ -4,6 +4,7 @@ package storage
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -29,6 +30,18 @@ func ValidatePath(baseDir, targetPath string) (string, error) {
 		resolvedPath = filepath.Clean(targetPath)
 	} else {
 		resolvedPath = filepath.Join(baseDirAbs, targetPath)
+
+		// CWD-relative fallback: when targetPath already includes baseDir's
+		// basename as a prefix (e.g. ".data/cam-xxx/file.mp4" when rootDir is "./.data"),
+		// joining with baseDirAbs produces a double-prefix path that doesn't exist.
+		// Try resolving targetPath as CWD-relative as a fallback.
+		if _, err := os.Stat(resolvedPath); os.IsNotExist(err) {
+			if cwdResolved, cwdErr := filepath.Abs(targetPath); cwdErr == nil {
+				if _, statErr := os.Stat(cwdResolved); statErr == nil {
+					resolvedPath = cwdResolved
+				}
+			}
+		}
 	}
 
 	// Canonicalize to absolute path.

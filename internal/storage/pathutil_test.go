@@ -152,3 +152,74 @@ func TestValidatePath_SymlinkTraversal(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "outside storage root")
 }
+
+// TestValidatePath_CWDRelativeFallback verifies that when targetPath already
+// includes the base directory's basename as a prefix (e.g. "data/cam/vid.mp4"
+// when baseDir is "./data"), ValidatePath falls back to CWD-relative resolution
+// instead of producing a double-prefix path.
+func TestValidatePath_CWDRelativeFallback(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Simulate: rootDir is ./data relative to CWD.
+	// Create the actual file at <tmpDir>/data/cam01/video.mp4
+	rootDir := filepath.Join(tmpDir, "data")
+	camDir := filepath.Join(rootDir, "cam01")
+	require.NoError(t, os.MkdirAll(camDir, 0o755))
+	correctPath := filepath.Join(camDir, "video.mp4")
+	require.NoError(t, os.WriteFile(correctPath, []byte("test"), 0o644))
+
+	// targetPath as stored in DB: already includes rootDir's basename ("data") prefix
+	targetPath := "data/cam01/video.mp4"
+
+	// Change CWD to tmpDir so filepath.Abs(targetPath) resolves correctly
+	prevCWD, err := os.Getwd()
+	require.NoError(t, err)
+	require.NoError(t, os.Chdir(tmpDir))
+	defer func() { _ = os.Chdir(prevCWD) }()
+
+	// Use relative rootDir to reproduce the exact bug scenario
+	path, err := ValidatePath("./data", targetPath)
+	require.NoError(t, err)
+	assert.Equal(t, correctPath, path)
+}
+
+// TestValidatePath_CWDRelativeFallback_NoFallbackNeeded ensures the fallback
+// does NOT activate when the normal Join-based resolution succeeds.
+func TestValidatePath_CWDRelativeFallback_NoFallbackNeeded(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Create the file at the standard location (under baseDir)
+	require.NoError(t, os.MkdirAll(filepath.Join(tmpDir, "cam01"), 0o755))
+	normalPath := filepath.Join(tmpDir, "cam01", "video.mp4")
+	require.NoError(t, os.WriteFile(normalPath, []byte("test"), 0o644))
+
+	// Standard relative path (no baseDir prefix) should resolve normally
+	path, err := ValidatePath(tmpDir, "cam01/video.mp4")
+	require.NoError(t, err)
+	assert.Equal(t, normalPath, path)
+}
+
+// TestValidatePath_CWDRelativeFallback_PathTraversal ensures that a fallback
+// path that escapes the storage root is correctly rejected.
+func TestValidatePath_CWDRelativeFallback_PathTraversal(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Create a file outside the root but on the CWD-relative path
+	require.NoError(t, os.MkdirAll(filepath.Join(tmpDir, "secret"), 0o755))
+	evilPath := filepath.Join(tmpDir, "secret", "data.txt")
+	require.NoError(t, os.WriteFile(evilPath, []byte("sensitive"), 0o644))
+
+	// rootDir is a subdir, targetPath tries to escape it via the CWD fallback
+	rootDir := filepath.Join(tmpDir, "data")
+	require.NoError(t, os.MkdirAll(rootDir, 0o755))
+
+	prevCWD, err := os.Getwd()
+	require.NoError(t, err)
+	require.NoError(t, os.Chdir(tmpDir))
+	defer func() { _ = os.Chdir(prevCWD) }()
+
+	// "../secret/data.txt" from rootDir/data/cam01 should be caught
+	_, err = ValidatePath(rootDir, "../secret/data.txt")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "outside storage root")
+}
