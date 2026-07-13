@@ -67,3 +67,7 @@ dist/
 internal/transcoding/-decoders
 internal/transcoding/-encoders
 .zcode/
+.ace-tool/
+.data
+
+*.dev.yaml

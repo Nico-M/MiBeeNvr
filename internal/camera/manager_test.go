@@ -437,6 +437,32 @@ func TestAddCamera_EnabledH264(t *testing.T) {
 	assert.Len(t, mgr.cfg.Cameras, 5) // 4 original + 1 new
 }
 
+func TestAddCamera_RequestContextCancelDoesNotStopRecorder(t *testing.T) {
+	mgr, _, _, _ := newTestManager(t)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	id, err := mgr.AddCamera(ctx, config.CameraConfig{
+		ID:       "cam-request-lifecycle",
+		Name:     "Request Lifecycle Camera",
+		Protocol: "rtsp",
+		Encoding: "h264",
+		URL:      "rtsp://127.0.0.1:1/stream",
+	})
+	require.NoError(t, err)
+	require.Equal(t, "cam-request-lifecycle", id)
+
+	// Simulate an API handler returning: net/http cancels r.Context() when the
+	// request is done, but the recorder must continue until CameraManager stops it.
+	cancel()
+
+	require.Eventually(t, func() bool {
+		status := mgr.CameraStatus(id)
+		return status == model.StatusRecording || status == model.StatusReconnecting
+	}, time.Second, 10*time.Millisecond)
+
+	require.NoError(t, mgr.StopCamera(context.Background(), id))
+}
+
 func TestAddCamera_HTTPJPEG(t *testing.T) {
 	mgr, _, _, _ := newTestManager(t)
 	ctx, cancel := context.WithCancel(context.Background())

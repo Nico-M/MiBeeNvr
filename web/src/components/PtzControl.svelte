@@ -1,9 +1,13 @@
 <script lang="ts">
   import { ptzMove, ptzStop, getPTZPresets, goToPTZPreset, xiaomiPtzMove, xiaomiPtzStop } from '$lib/api';
-  import type { PTZPreset } from '$lib/api';
+  import type { PTZMoveRequest, PTZPreset } from '$lib/api';
   import { t } from '$lib/i18n';
   import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-svelte';
-  let { cameraId, enabled = false, protocol = '' }: { cameraId: string; enabled?: boolean; protocol?: string } = $props();
+  let {
+    cameraId,
+    enabled = false,
+    protocol = '',
+  }: { cameraId: string; enabled?: boolean; protocol?: string } = $props();
 
   let moving = $state<string | null>(null);
   let error = $state('');
@@ -16,27 +20,46 @@
   // receiving a late move AFTER stop (which would leave it turning forever).
   let moveAbort: AbortController | null = null;
 
+  function buildContinuousMove(direction: string, speed: number): PTZMoveRequest {
+    // ONVIF continuous move 接口接收三轴速度向量，而不是方向字符串。
+    const request: PTZMoveRequest = { mode: 'continuous', pan: 0, tilt: 0, zoom: 0 };
+    switch (direction) {
+      case 'left':
+        request.pan = -speed;
+        break;
+      case 'right':
+        request.pan = speed;
+        break;
+      case 'up':
+        request.tilt = speed;
+        break;
+      case 'down':
+        request.tilt = -speed;
+        break;
+      case 'zoom_in':
+        request.zoom = speed;
+        break;
+      case 'zoom_out':
+        request.zoom = -speed;
+        break;
+    }
+    return request;
+  }
+
+  function reportPTZError(e: unknown) {
+    error = e instanceof Error ? e.message : 'PTZ command failed';
+  }
+
   function onPointerDown(direction: string, speed?: number) {
+    error = '';
     moving = direction;
     // Cancel any previous in-flight move/stop so rapid taps don't interleave.
     if (moveAbort) { moveAbort.abort(); }
     moveAbort = new AbortController();
     if (protocol === 'xiaomi') {
-      xiaomiPtzMove(cameraId, direction, speed ?? 5).catch(() => {});
+      xiaomiPtzMove(cameraId, direction, speed ?? 5).catch(reportPTZError);
     } else {
-      // Map direction to ONVIF ContinuousMove velocity vector.
-      // ONVIF PanTilt: x=pan (right+), y=tilt (up+); Zoom: x=zoom (in+).
-      const s = speed ?? 0.5;
-      let pan = 0, tilt = 0, zoom = 0;
-      switch (direction) {
-        case 'up':    tilt =  s; break;
-        case 'down':  tilt = -s; break;
-        case 'left':  pan  = -s; break;
-        case 'right': pan  =  s; break;
-        case 'zoom_in':  zoom =  s; break;
-        case 'zoom_out': zoom = -s; break;
-      }
-      ptzMove(cameraId, { mode: 'continuous', pan, tilt, zoom }, moveAbort.signal).catch(() => {});
+      ptzMove(cameraId, buildContinuousMove(direction, speed ?? 0.5)).catch(reportPTZError);
     }
   }
 
@@ -46,9 +69,9 @@
     // Abort the in-flight move so it can't arrive after stop.
     if (moveAbort) { moveAbort.abort(); moveAbort = null; }
     if (protocol === 'xiaomi') {
-      xiaomiPtzStop(cameraId).catch(() => {});
+      xiaomiPtzStop(cameraId).catch(reportPTZError);
     } else {
-      ptzStop(cameraId).catch(() => {});
+      ptzStop(cameraId).catch(reportPTZError);
     }
   }
 
@@ -89,7 +112,6 @@
     {#if error}
       <div class="ptz-error">{error}</div>
     {/if}
-
     <!-- Direction pad: 3x3 grid -->
     <div class="ptz-grid">
       <div class="ptz-cell"></div>
@@ -283,8 +305,12 @@
   }
 
   @keyframes pulse {
-    from { opacity: 0.5; }
-    to { opacity: 1; }
+    from {
+      opacity: 0.5;
+    }
+    to {
+      opacity: 1;
+    }
   }
 
   .ptz-zoom-row {

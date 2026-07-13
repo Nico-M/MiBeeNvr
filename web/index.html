@@ -30,8 +30,9 @@
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
     <!-- Service Worker registration (PWA) -->
-    <script>
-      if ('serviceWorker' in navigator) {
+    <script type="module">
+      // 开发模式禁用 Service Worker，避免缓存旧的 JS/CSS 后误判为 HMR 失效。
+      if (import.meta.env.PROD && 'serviceWorker' in navigator) {
         window.addEventListener('load', function() {
           navigator.serviceWorker.register('/sw.js').catch(function(e) {
             console.warn('SW registration failed:', e);

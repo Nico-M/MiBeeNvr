@@ -272,21 +272,28 @@ func (cm *CameraManager) startRecorder(ctx context.Context, cam config.CameraCon
 		return fmt.Errorf("camera %q: protocol %q does not support recording", cam.ID, cam.Protocol)
 	}
 	cm.recorders[cam.ID] = rec
+	// Recorder lifetime must be owned by CameraManager, not by the caller.
+	// API handlers pass request contexts here; if a recorder uses that context
+	// directly, the HTTP request finishing cancels a newly added camera.
+	//
+	// context.WithoutCancel detaches cancellation but preserves the parent's
+	// Deadline and Values. Callers that need to bound the recorder's lifetime
+	// (e.g. a max session length) must not rely on a deadline here — it would
+	// be inherited by the recorder without the cancellation that normally
+	// fires alongside it. Use CameraManager.StopCamera instead.
+	runCtx := context.WithoutCancel(ctx)
 
 	// For timelapse recorders, check scheduler before starting
 	if cam.Protocol == "timelapse" && cam.Timelapse != nil {
 		if !cm.scheduler.IsRecordingTime(*cam.Timelapse) {
 			logger.Info("timelapse schedule: not recording time, delaying start", "camera_id", cam.ID)
 			// Start schedule monitor anyway so it can start the recorder when the schedule says so
-			cm.startTimelapseScheduleMonitor(ctx, cam.ID, rec, *cam.Timelapse)
+			cm.startTimelapseScheduleMonitor(runCtx, cam.ID, rec, *cam.Timelapse)
 			return nil
 		}
 	}
 
-	// Recorders derive their run context from context.Background() internally,
-	// so their lifecycle is independent of this ctx (e.g. HTTP request context).
-	// The ctx is only used for short initial setup (e.g. ONVIF device probe).
-	if err := rec.Start(ctx); err != nil {
+	if err := rec.Start(runCtx); err != nil {
 		delete(cm.recorders, cam.ID)
 		// Record connection error metric
 		if cm.metrics != nil {
@@ -297,7 +304,7 @@ func (cm *CameraManager) startRecorder(ctx context.Context, cam config.CameraCon
 
 	// Start schedule monitor for timelapse recorders
 	if cam.Protocol == "timelapse" && cam.Timelapse != nil {
-		cm.startTimelapseScheduleMonitor(ctx, cam.ID, rec, *cam.Timelapse)
+		cm.startTimelapseScheduleMonitor(runCtx, cam.ID, rec, *cam.Timelapse)
 	}
 
 	// Start keyframe extractor for recorders with rtsp_keyframe timelapse config

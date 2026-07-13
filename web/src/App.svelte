@@ -4,7 +4,7 @@
   import { t } from '$lib/i18n';
   import { WifiOff } from 'lucide-svelte';
   // Route loader map — lazy loaded on demand
-  const routeLoaders = {
+  const routeLoaders: Record<string, () => Promise<{ default: any }>> = {
     login: () => import('./routes/Login.svelte'),
     setup: () => import('./routes/Setup.svelte'),
     recordings: () => import('./routes/Recordings.svelte'),
@@ -18,7 +18,7 @@
     'transcoding-history': () => import('./routes/TranscodingHistory.svelte'),
     'ai-events': () => import('./routes/AIEvents.svelte'),
   };
-  import Header from './components/Header';
+  import Header from './components/Header.svelte';
 
   // Network status
   let isOffline = $state(false);
@@ -38,7 +38,9 @@
     showOfflineBanner = false;
     showOnlineBanner = true;
     if (onlineBannerTimer) clearTimeout(onlineBannerTimer);
-    onlineBannerTimer = setTimeout(() => { showOnlineBanner = false; }, 3000);
+    onlineBannerTimer = setTimeout(() => {
+      showOnlineBanner = false;
+    }, 3000);
   }
 
   // SW 503 detection — when the Service Worker returns offline responses
@@ -47,7 +49,9 @@
       // Browser thinks we're online but API is unreachable — show banner briefly
       showOfflineBanner = true;
       if (onlineBannerTimer) clearTimeout(onlineBannerTimer);
-      onlineBannerTimer = setTimeout(() => { showOfflineBanner = false; }, 5000);
+      onlineBannerTimer = setTimeout(() => {
+        showOfflineBanner = false;
+      }, 5000);
     } else {
       handleOffline();
     }
@@ -65,15 +69,14 @@
     }
   }
 
-
   // Parse hash-based routes (hoisted — function declarations are available before this line)
-function parseRoute(hash: string) {
+  function parseRoute(hash: string) {
     let path = hash.slice(1); // Remove #
 
     // Strip query parameters from hash for routing
     const qIdx = path.indexOf('?');
     if (qIdx !== -1) {
-        path = path.slice(0, qIdx);
+      path = path.slice(0, qIdx);
     }
 
     if (!path || path === '/') {
@@ -115,7 +118,6 @@ function parseRoute(hash: string) {
       }
       return { route: 'cameras', params: {} };
     }
-
 
     if (segments[0] === 'status') {
       window.location.replace('#/dashboard/health');
@@ -165,10 +167,10 @@ function parseRoute(hash: string) {
     }
   }
 
-  const initialRoute = typeof window !== 'undefined' ? parseRoute(window.location.hash) : { route: 'login', params: {} };
+  const initialRoute =
+    typeof window !== 'undefined' ? parseRoute(window.location.hash) : { route: 'login', params: {} };
   let currentRoute = $state(initialRoute.route);
-  let params: Record<string, string> = $state(initialRoute.params);
-
+  let params: { id?: string; tab?: string } = $state(initialRoute.params);
 
   function updateRoute() {
     const hash = window.location.hash;
@@ -228,12 +230,21 @@ function parseRoute(hash: string) {
 
   function getRouteProps(route: string) {
     switch (route) {
-      case 'recording-detail': return { recordingId: params.id };
-      case 'live': return { cameraId: params.id };
-      case 'dashboard': return { initialTab: params.tab || 'storage' };
-      default: return {};
+      case 'recording-detail':
+        return { recordingId: params.id };
+      case 'live':
+        return { cameraId: params.id };
+      case 'dashboard':
+        return { initialTab: params.tab || 'storage' };
+      default:
+        return {};
     }
   }
+
+  // Derived route props — updates reactively when currentRoute or params change.
+  // Uses $derived instead of template {@const} to avoid Svelte 5 scoping issues
+  // when combined with {#key} destruction/recreation.
+  let routeProps = $derived(getRouteProps(currentRoute));
 </script>
 
 <!-- Offline banner -->
@@ -259,17 +270,19 @@ function parseRoute(hash: string) {
   {/await}
 {:else}
   <Header showBack={currentRoute === 'recording-detail' || currentRoute === 'live'} />
-  <!-- Compute route props OUTSIDE the {#await} block so they update reactively
-       when params change (even if currentRoute name stays the same, e.g.
-       navigating from recording A to recording B). Inside {#await}, expressions
-       only re-evaluate when the awaited promise re-resolves. -->
-  {@const routeProps = getRouteProps(currentRoute)}
+  <!-- #key forces re-creation when route or params.id changes, so dynamic import
+       re-resolves and routeProps (computed via $derived) always reflects current state -->
   {#key currentRoute + '|' + (params.id || '')}
-  {#await routeLoaders[currentRoute]()}
-    <div class="skeleton skeleton--page"></div>
-  {:then module}
-    <module.default {...routeProps} />
-  {/await}
+    {#await routeLoaders[currentRoute]()}
+      <div class="skeleton skeleton--page"></div>
+    {:then module}
+      <module.default {...routeProps} />
+    {:catch err}
+      <div class="p-8 text-center">
+        <p class="text-danger font-medium">{t('error.failedLoadPage')}</p>
+        <p class="text-sm text-secondary mt-2">{err?.message || String(err)}</p>
+      </div>
+    {/await}
   {/key}
 {/if}
 
@@ -335,8 +348,12 @@ function parseRoute(hash: string) {
   }
 
   @keyframes pulse {
-    0%, 100% { opacity: 0.4; }
-    50% { opacity: 0.8; }
+    0%,
+    100% {
+      opacity: 0.4;
+    }
+    50% {
+      opacity: 0.8;
+    }
   }
-
 </style>
