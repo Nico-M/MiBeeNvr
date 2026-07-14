@@ -9,6 +9,7 @@
   let options = $state<ImagingOptions | null>(null);
   let loading = $state(true);
   let error = $state('');
+  let notSupported = $state(false);
   let saving = $state(false);
 
   // Local mutable copies for sliders
@@ -42,7 +43,11 @@
       options = o;
       populateLocal(s);
     } catch (e: any) {
-      error = e.message || 'Failed to load imaging settings';
+      if (e.code === 'IMAGING_NOT_SUPPORTED') {
+        notSupported = true;
+      } else {
+        error = e.message || 'Failed to load imaging settings';
+      }
     } finally {
       loading = false;
     }
@@ -114,6 +119,8 @@
     </div>
   {:else if error}
     <div class="imaging-error">{error || t('onvif.imaging.loadError')}</div>
+  {:else if notSupported}
+    <div class="imaging-not-supported">{t('onvif.imaging.notSupported')}</div>
   {:else}
     <div class="imaging-grid">
       <!-- Brightness -->
@@ -333,6 +340,13 @@
     padding: 0.25rem 0.5rem;
     background-color: rgba(239, 68, 68, 0.1);
     border-radius: var(--radius-sm);
+  }
+
+  .imaging-not-supported {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    text-align: center;
+    padding: 0.75rem 0.5rem;
   }
 
   .imaging-grid {

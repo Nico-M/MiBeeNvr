@@ -129,6 +129,16 @@ func (e *ONVIFNoProfilesError) Error() string {
 }
 func (e *ONVIFNoProfilesError) Code() string { return "ONVIF_NO_PROFILES" }
 
+// ImagingNotSupportedError indicates the camera does not support ONVIF imaging settings.
+type ImagingNotSupportedError struct {
+	CameraID string
+}
+
+func (e *ImagingNotSupportedError) Error() string {
+	return "imaging not supported via ONVIF: " + e.CameraID
+}
+func (e *ImagingNotSupportedError) Code() string { return "IMAGING_NOT_SUPPORTED" }
+
 // --- CodedError interface ---
 
 // CodedError is an error that includes a machine-readable error code.

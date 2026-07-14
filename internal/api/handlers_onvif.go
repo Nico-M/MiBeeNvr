@@ -515,6 +515,10 @@ func (h *Handler) handleImagingGetSettings(w http.ResponseWriter, r *http.Reques
 	}
 	settings, err := img.GetImagingSettings(r.Context())
 	if err != nil {
+		if isSOAPAuthOrUnavailable(err) {
+			writeAPIError(w, http.StatusBadGateway, &model.ImagingNotSupportedError{CameraID: cameraID})
+			return
+		}
 		WriteError(w, http.StatusBadGateway, fmt.Sprintf("get imaging settings failed: %v", err))
 		return
 	}
@@ -542,6 +546,10 @@ func (h *Handler) handleImagingSetSettings(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	if err := img.SetImagingSettings(r.Context(), req); err != nil {
+		if isSOAPAuthOrUnavailable(err) {
+			writeAPIError(w, http.StatusBadGateway, &model.ImagingNotSupportedError{CameraID: cameraID})
+			return
+		}
 		WriteError(w, http.StatusBadGateway, fmt.Sprintf("set imaging settings failed: %v", err))
 		return
 	}
@@ -565,6 +573,10 @@ func (h *Handler) handleImagingGetOptions(w http.ResponseWriter, r *http.Request
 	}
 	options, err := img.GetImagingOptions(r.Context())
 	if err != nil {
+		if isSOAPAuthOrUnavailable(err) {
+			writeAPIError(w, http.StatusBadGateway, &model.ImagingNotSupportedError{CameraID: cameraID})
+			return
+		}
 		WriteError(w, http.StatusBadGateway, fmt.Sprintf("get imaging options failed: %v", err))
 		return
 	}
@@ -605,6 +617,16 @@ func handleONVIFSnapshotError(w http.ResponseWriter, cameraID string, err error)
 		logger.Error("snapshot operation failed", "camera_id", cameraID, "error", err)
 		WriteError(w, http.StatusInternalServerError, "snapshot operation failed")
 	}
+}
+
+// isSOAPAuthOrUnavailable checks if a SOAP error indicates the ONVIF imaging
+// service rejected the request (401) or is unavailable (502/503), meaning
+// the camera does not actually support ONVIF imaging control.
+func isSOAPAuthOrUnavailable(err error) bool {
+	s := err.Error()
+	return strings.Contains(s, "status 401") ||
+		strings.Contains(s, "status 502") ||
+		strings.Contains(s, "status 503")
 }
 
 // --- Device Management endpoints ---
