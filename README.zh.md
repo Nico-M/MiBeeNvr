@@ -225,12 +225,55 @@ deploy/              # systemd 服务文件
 docs/                # 文档（中文/英文）
 ```
 
-## 贡献
+## Fork 开发工作流
 
-1. 提交前运行 `make lint`
-2. 新功能附带测试
-3. 清晰的提交信息
+本仓库 fork 自 [Mi-Bee-Studio/MiBeeNvr](https://github.com/Mi-Bee-Studio/MiBeeNvr)，以下为自己维护 fork 的 Git 工作流。
 
-## 许可证
+### 分支角色
+
+| 分支 | 用途 | 操作 |
+|------|------|------|
+| `main` | 上游镜像，不同步不提交 | 只执行 `git fetch upstream && git rebase upstream/main` |
+| `dev` | 自己的代码基地，部署用 | 所有 feature 合入这里 |
+| `feat/*` / `fix/*` | 单个功能或修复 | 从 `dev` 切，完成后 `--ff-only` 合回 `dev` |
+
+### 同步上游
+
+```bash
+git checkout main
+git fetch upstream
+git rebase upstream/main
+git push origin main
+
+git checkout dev
+git rebase main
+git push origin dev --force-with-lease
+```
+
+### 开发新功能
+
+```bash
+# 从 dev 开分支
+git checkout -b feat/xxx dev
+
+# 写代码、commit
+git add . && git commit -m "feat: 描述"
+git push origin feat/xxx
+
+# 完成后合入 dev
+git checkout dev
+git merge feat/xxx --ff-only
+git push origin dev
+```
+
+### 远程仓库设置
+
+```bash
+# upstream = 原作者仓库（只读）
+git remote add upstream https://github.com/Mi-Bee-Studio/MiBeeNvr.git
+
+# origin = 自己的 fork
+git remote add origin https://github.com/Nico-M/MiBeeNvr.git
+```
 
 [MIT License](LICENSE) © Mi&Bee Studio
