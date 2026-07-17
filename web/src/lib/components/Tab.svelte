@@ -94,8 +94,9 @@
     border-radius: 9999px;
     font-size: 0.75rem;
     font-weight: 600;
-    background: var(--color-primary);
-    color: #ffffff;
+    background: rgba(var(--color-primary-rgb), 0.16);
+    color: var(--color-primary-light);
+    border: 1px solid rgba(var(--color-primary-rgb), 0.28);
   }
 
   .tab-indicator {
@@ -103,8 +104,10 @@
     bottom: 0;
     height: 2px;
     background: var(--color-primary);
-    border-radius: 1px;
-    transition: left var(--duration-fast) var(--ease-out);
+    border-radius: 999px;
+    transition:
+      left var(--duration-normal) var(--ease-out),
+      width var(--duration-normal) var(--ease-out);
     pointer-events: none;
   }
 </style>

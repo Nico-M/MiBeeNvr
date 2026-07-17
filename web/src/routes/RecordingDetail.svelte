@@ -1154,8 +1154,8 @@ $effect(() => {
     };
   });
 </script>
-<div class="min-h-screen th-bg-primary pt-[68px]">
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="min-h-screen th-bg-primary pt-[var(--navbar-height)]">
+  <main class="page-shell">
     <!-- Loading state -->
     {#if loading}
       <div class="flex justify-center items-center h-64">

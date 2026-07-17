@@ -68,32 +68,35 @@
   }
 </script>
 
-<div class="min-h-screen flex items-center justify-center th-bg-primary px-4">
+<div class="login-page min-h-[100dvh] flex items-center justify-center th-bg-primary px-4">
   <div class="fixed top-4 right-4 flex items-center gap-2 z-50">
     <ThemeToggle />
     <LanguageSwitcher />
   </div>
 
-  <div class="card w-full max-w-md p-10 border th-border shadow-2xl">
-    <div class="text-center mb-10">
-      <div class="text-sm font-semibold tracking-widest uppercase th-text-tertiary mb-3">MiBee</div>
-      <h1 class="text-3xl font-bold bg-gradient-to-r from-violet-400 to-blue-400 bg-clip-text text-transparent mb-3">{t('login.title')}</h1>
-      <p class="th-text-tertiary text-sm">{t('login.subtitle')}</p>
+  <div class="card card-flat w-full max-w-md p-8 sm:p-10 border th-border">
+    <div class="mb-8">
+      <div class="flex items-center gap-2 mb-6">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="text-sm font-semibold tracking-[0.14em] uppercase th-text-tertiary">MiBee NVR</span>
+      </div>
+      <h1 class="text-2xl sm:text-[1.75rem] font-semibold tracking-tight th-text-primary mb-2">{t('login.title')}</h1>
+      <p class="th-text-tertiary text-sm leading-relaxed">{t('login.subtitle')}</p>
     </div>
 
     {#if error}
-      <div class="mb-6 p-3 bg-[rgba(239,68,68,0.3)] border th-border-danger rounded-lg th-color-danger text-sm">
+      <div class="mb-6 p-3 bg-[rgba(239,68,68,0.12)] border th-border-danger rounded-[var(--radius-sm)] th-color-danger text-sm">
         {error}
       </div>
     {/if}
 
-    <form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} class="space-y-6">
+    <form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} class="space-y-5">
       <div>
         <label for="username" class="input-label">{t('login.username')}</label>
         <input
           id="username"
           type="text"
-          class="input {loginErrors.username ? 'border-red-500' : ''}"
+          class="input {loginErrors.username ? 'input-error' : ''}"
           bind:value={username}
           placeholder={t('login.usernamePlaceholder')}
           disabled={loading}
@@ -103,7 +106,7 @@
           autocomplete="username"
         />
         {#if loginErrors.username}
-          <p class="th-color-danger text-xs mt-1">{loginErrors.username}</p>
+          <p class="th-color-danger text-xs mt-1.5">{loginErrors.username}</p>
         {/if}
       </div>
 
@@ -113,7 +116,7 @@
           <input
             id="password"
             type={showPassword ? 'text' : 'password'}
-            class="input pr-10 {loginErrors.password ? 'border-red-500' : ''}"
+            class="input pr-10 {loginErrors.password ? 'input-error' : ''}"
             bind:value={password}
             placeholder={t('login.passwordPlaceholder')}
             disabled={loading}
@@ -124,7 +127,7 @@
           />
           <button
             type="button"
-            class="absolute right-2 top-1/2 -translate-y-1/2 th-text-tertiary hover:th-text-primary transition-colors"
+            class="absolute right-2 top-1/2 -translate-y-1/2 th-text-tertiary hover:th-text-primary transition-colors p-1"
             onclick={() => showPassword = !showPassword}
             aria-label={showPassword ? t('common.hidePassword') : t('common.showPassword')}
           >
@@ -136,13 +139,13 @@
           </button>
         </div>
         {#if loginErrors.password}
-          <p class="th-color-danger text-xs mt-1">{loginErrors.password}</p>
+          <p class="th-color-danger text-xs mt-1.5">{loginErrors.password}</p>
         {/if}
       </div>
 
-      <button type="submit" class="btn btn-primary w-full" disabled={loading}>
+      <button type="submit" class="btn btn-primary w-full mt-1" disabled={loading}>
         {#if loading}
-          <span class="spinner mr-2"></span>
+          <span class="spinner"></span>
           {t('login.signingIn')}
         {:else}
           {t('login.signIn')}
@@ -150,8 +153,24 @@
       </button>
     </form>
 
-    <div class="mt-8 text-center text-sm th-text-tertiary">
-      <p class="border-t th-border pt-6">{t('login.secureNote')}</p>
+    <div class="mt-8 text-center text-xs th-text-tertiary">
+      <p class="border-t th-border pt-5">{t('login.secureNote')}</p>
     </div>
   </div>
 </div>
+
+<style>
+  .login-page {
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(var(--color-primary-rgb), 0.12), transparent 55%),
+      var(--bg-primary);
+  }
+
+  .brand-mark {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 999px;
+    background: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.18);
+  }
+</style>

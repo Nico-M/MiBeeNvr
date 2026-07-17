@@ -153,11 +153,11 @@
  });
 </script>
 
-<div class="min-h-screen th-bg-primary pt-[68px]">
- <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="min-h-screen th-bg-primary pt-[var(--navbar-height)]">
+ <main class="page-shell">
  	<div class="mb-6">
  		<div class="flex items-center justify-between mb-4">
- 			<h2 class="text-2xl font-bold th-text-primary">{t('transcoding.history.title')}</h2>
+ 			<h2 class="page-title">{t('transcoding.history.title')}</h2>
  			<button
  				onclick={loadTasks}
  				class="btn btn-ghost btn-sm flex items-center gap-1.5"

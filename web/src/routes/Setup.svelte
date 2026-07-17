@@ -132,21 +132,24 @@
   }
 </script>
 
-<div class="min-h-screen flex items-center justify-center th-bg-primary px-4">
+<div class="setup-page min-h-[100dvh] flex items-center justify-center th-bg-primary px-4">
   <div class="fixed top-4 right-4 flex items-center gap-2 z-50">
     <ThemeToggle />
     <LanguageSwitcher />
   </div>
 
-  <div class="card w-full max-w-lg p-10 border th-border shadow-2xl">
-    <div class="text-center mb-8">
-      <div class="text-sm font-semibold tracking-widest uppercase th-text-tertiary mb-3">MiBee</div>
-      <h1 class="text-3xl font-bold bg-gradient-to-r from-violet-400 to-blue-400 bg-clip-text text-transparent mb-3">{t('setup.title')}</h1>
-      <p class="th-text-tertiary text-sm">{t('setup.subtitle')}</p>
+  <div class="card card-flat w-full max-w-lg p-8 sm:p-10 border th-border">
+    <div class="mb-8">
+      <div class="flex items-center gap-2 mb-6">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="text-sm font-semibold tracking-[0.14em] uppercase th-text-tertiary">MiBee NVR</span>
+      </div>
+      <h1 class="text-2xl sm:text-[1.75rem] font-semibold tracking-tight th-text-primary mb-2">{t('setup.title')}</h1>
+      <p class="th-text-tertiary text-sm leading-relaxed">{t('setup.subtitle')}</p>
     </div>
 
     {#if error}
-      <div class="mb-6 p-3 bg-[rgba(239,68,68,0.3)] border th-border-danger rounded-lg th-color-danger text-sm">
+      <div class="mb-6 p-3 bg-[rgba(239,68,68,0.12)] border th-border-danger rounded-[var(--radius-sm)] th-color-danger text-sm">
         {error}
       </div>
     {/if}
@@ -331,8 +334,24 @@
       </button>
     </form>
 
-    <div class="mt-6 text-center text-sm th-text-tertiary">
-      <p class="border-t th-border pt-4">{t('setup.secureNote')}</p>
+    <div class="mt-6 text-center text-xs th-text-tertiary">
+      <p class="border-t th-border pt-5">{t('setup.secureNote')}</p>
     </div>
   </div>
 </div>
+
+<style>
+  .setup-page {
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(var(--color-primary-rgb), 0.12), transparent 55%),
+      var(--bg-primary);
+  }
+
+  .brand-mark {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 999px;
+    background: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.18);
+  }
+</style>

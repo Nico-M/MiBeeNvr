@@ -122,7 +122,7 @@
   {:else}
   <!-- Header -->
   <div class="flex items-center gap-3 mb-6">
-    <Brain size={28} class="text-purple-400" />
+    <Brain size={28} class="text-accent" />
     <div>
       <h1 class="text-xl font-bold th-text-primary">{t('aiEvents.title')}</h1>
       <p class="text-sm th-text-muted">{t('aiEvents.subtitle')}</p>
@@ -167,7 +167,7 @@
   <!-- Loading -->
   {#if loading}
     <div class="flex items-center justify-center py-12">
-      <div class="w-6 h-6 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin"></div>
+      <div class="spinner spinner-lg"></div>
     </div>
   {:else if events.length === 0}
     <div class="text-center py-12 th-text-muted">

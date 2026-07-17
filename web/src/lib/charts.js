@@ -5,15 +5,15 @@
 import { getChartUnit } from './format';
 import { getEffectiveTheme } from './preferences';
 
-/** Bar color palette for camera charts */
+/** Bar color palette for camera charts (teal-first ops palette) */
 export const BAR_COLORS = [
-  'rgba(139, 92, 246, 0.7)',
-  'rgba(56, 189, 248, 0.7)',
+  'rgba(20, 184, 166, 0.75)',
+  'rgba(34, 211, 238, 0.7)',
   'rgba(16, 185, 129, 0.7)',
   'rgba(245, 158, 11, 0.7)',
   'rgba(239, 68, 68, 0.7)',
-  'rgba(168, 85, 247, 0.7)',
-  'rgba(34, 197, 94, 0.7)',
+  'rgba(56, 189, 248, 0.7)',
+  'rgba(52, 211, 153, 0.7)',
   'rgba(251, 146, 60, 0.7)',
 ];
 
@@ -66,8 +66,8 @@ export function getChartThemeColors() {
   return {
     gridColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
     textColor: isDark ? '#a1a1a1' : '#4b5563',
-    accentColor: 'rgba(139, 92, 246, 0.8)',
-    accentFill: 'rgba(139, 92, 246, 0.1)',
+    accentColor: 'rgba(20, 184, 166, 0.85)',
+    accentFill: 'rgba(20, 184, 166, 0.12)',
   };
 }
 

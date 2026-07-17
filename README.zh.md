@@ -142,12 +142,212 @@ make build
 | [视频转码](docs/zh/transcoding.md) | FFmpeg 转码设置 |
 | [Prometheus 指标](docs/zh/metrics.md) | 完整的 Prometheus 指标参考，包含类型、标签和使用示例 |
 
+## 开发指南
+
+适合从源码改功能、调前端或跑测试。日常命令以仓库根目录的 `Makefile` 与 `web/package.json` 为准。
+
+### 环境要求
+
+| 工具 | 版本 / 说明 |
+|------|-------------|
+| Go | 见 [`.go-version`](.go-version)（当前 `1.26`） |
+| Node.js + npm | 用于 Svelte 前端（建议 Node 20+） |
+| Make | 调用统一构建目标 |
+| golangci-lint | 可选；`make lint` 需要，首次执行 `make lint-install` |
+| Docker / Podman | 可选；仅构建/运行容器镜像时需要 |
+| FFmpeg | 可选；转码相关功能需要，二进制本身可不依赖它 |
+
 ```bash
-make build              # 本机编译（当前架构）
-make cross              # 交叉编译 ARM64 二进制
-make test               # 运行测试
-make lint               # 代码检查
+git clone https://github.com/Mi-Bee-Studio/MiBeeNvr.git
+cd MiBeeNvr
+# 前端依赖（首次或 package.json 变更后）
+cd web && npm install && cd ..
 ```
+
+### 全量构建与本地运行
+
+`make build` 会先构建前端，再把产物拷入 `internal/ui/static/`，最后编译 Go 单二进制。
+
+```bash
+# 构建前端 + 后端 → build/mibee-nvr
+make build
+
+# 首次初始化配置（生成 mibee-nvr.yaml）
+./build/mibee-nvr init --password yourpassword
+
+# 启动服务（默认 Web：http://localhost:9090）
+./build/mibee-nvr -config mibee-nvr.yaml
+
+# 仅重新构建前端并同步到内嵌目录（不编 Go）
+make frontend
+
+# 清理构建产物
+make clean
+```
+
+也可直接用仓库根目录下的二进制名（若你把输出链到别处）：
+
+```bash
+make build
+./mibee-nvr init --password yourpassword   # 若二进制在 PATH 或当前目录
+./mibee-nvr -config mibee-nvr.yaml
+```
+
+### 前端开发（热更新）
+
+前端 **支持热更新（HMR）**：Vite 改 `.svelte` / CSS / TS 后浏览器自动刷新，无需重启 Go。
+
+改 UI 时建议前后端分开跑：Go 提供 API，Vite 负责热更新。
+
+```bash
+# 终端 1：启动后端（需已有可用配置）
+make build
+./build/mibee-nvr -config mibee-nvr.yaml
+
+# 终端 2：前端开发服务器
+cd web
+npm install          # 首次
+npm run dev          # Vite，默认 http://localhost:5173
+```
+
+前端常用脚本：
+
+```bash
+cd web
+
+npm run dev          # 开发服务器（HMR）
+npm run build        # 生产构建 → web/dist
+npm run preview      # 预览生产构建
+npm run test         # Vitest 单元测试
+npm run check        # svelte-check 类型检查
+npm run format       # Prettier 格式化 src/
+```
+
+> 说明：发布/嵌入 UI 时请走 `make frontend` 或 `make build`，不要只跑 `npm run build` 就以为二进制里已更新——`make frontend` 会把 `web/dist` 同步到 `internal/ui/static/`。
+
+### 后端开发（无内置热更新）
+
+后端是 **长驻 Go 进程**，本仓库 **没有** 内置类似 Vite 的 HMR：改 `internal/` / `pkg/` / `cmd/` 后需要 **重新编译并重启进程** 才会生效。
+
+原因简要说明：
+
+| | 前端 (Vite) | 后端 (Go NVR) |
+|--|-------------|---------------|
+| 形态 | 浏览器里的模块图，可热替换 | 已编译的二进制 + 多 goroutine 服务 |
+| 改代码后 | HMR / 刷新页面 | 必须重新 `go build` 并重启 |
+| 状态 | 页面状态可部分保留 | 重启会断流、断 WebRTC/HLS 会话、停录像循环再拉起 |
+
+日常改后端的两种方式：
+
+**1. 手动重启（最简单、仓库默认）**
+
+```bash
+# 改代码后
+make build                              # 或：go build -o build/mibee-nvr ./cmd/mibee-nvr
+# Ctrl+C 停掉旧进程，再启动
+./build/mibee-nvr -config mibee-nvr.yaml
+```
+
+只改纯 Go、不动前端时，可跳过 `make frontend`，直接：
+
+```bash
+CGO_ENABLED=0 go build -o build/mibee-nvr ./cmd/mibee-nvr
+./build/mibee-nvr -config mibee-nvr.yaml
+```
+
+**2. 可选：用文件监听自动重编译（社区工具，非项目内置）**
+
+若希望「保存即重启」，可自行安装 [Air](https://github.com/air-verse/air) 等工具，在仓库根目录监听 `.go` 文件：
+
+```bash
+# 安装（一次性）
+go install github.com/air-verse/air@latest
+
+# 示例：监听并重启（按需写 .air.toml；以下为最小可用命令）
+air -c <(cat <<'EOF'
+root = "."
+tmp_dir = "tmp"
+[build]
+  cmd = "CGO_ENABLED=0 go build -o ./tmp/mibee-nvr ./cmd/mibee-nvr"
+  bin = "./tmp/mibee-nvr"
+  full_bin = "./tmp/mibee-nvr -config mibee-nvr.yaml"
+  include_ext = ["go"]
+  exclude_dir = ["web", "build", "tmp", "docs", "e2e-tests", "node_modules"]
+EOF
+)
+```
+
+注意：
+
+- 自动重启 **仍会中断** 正在进行的直播/录像会话，只是省了你手动敲命令。
+- NVR 持有摄像头连接、SQLite、StreamHub 等状态，不适合、也不存在「改一行函数不重启进程」的真正 HMR。
+- 配置热加载：改 YAML 是否即时生效取决于具体配置项；多数核心变更仍以重启为准。开发时以重启进程为可靠路径。
+
+### 后端测试与代码检查
+
+```bash
+# 全量 Go 测试（含 -race）
+make test
+
+# 详细输出
+make test-verbose
+
+# 跳过部分慢测
+make test-short
+
+# 静态检查
+make lint-install    # 首次安装 golangci-lint
+make lint
+```
+
+只测某个包时可用：
+
+```bash
+go test -race ./internal/camera/...
+go test -race ./pkg/app/...
+```
+
+### 交叉编译与部署
+
+```bash
+# ARM64（树莓派 4/5 等）
+make cross           # → build/mibee-nvr-arm64
+
+# ARMv7（树莓派 2/3 等）
+make cross-armv7     # → build/mibee-nvr-armv7
+
+# 部署到树莓派（需改 Makefile 中的 RPi_HOST）
+make deploy          # 交叉编译 + scp + 重启服务
+make deploy-check    # 检查远端服务是否 active
+make rollback        # 回滚到远端 .bak 备份
+```
+
+### 常用命令速查
+
+| 命令 | 作用 |
+|------|------|
+| `make build` | 前端 + 本机架构 Go 二进制 |
+| `make frontend` | 仅构建并嵌入前端 |
+| `make test` | Go 测试（`-race`） |
+| `make lint` | golangci-lint |
+| `make cross` | Linux ARM64 交叉编译 |
+| `make cross-armv7` | Linux ARMv7 交叉编译 |
+| `make clean` | 清理 `build/`、`web/dist` 等 |
+| `make docker-build` | 构建当前架构容器镜像 |
+| `make docker-build-arm64` | 构建 arm64 镜像（容器内交叉编译） |
+| `make docker-build-all` | 构建多架构镜像 |
+| `cd web && npm run dev` | 前端热更新开发 |
+| `cd web && npm run test` | 前端单元测试 |
+
+### 推荐工作流
+
+1. 从 `dev`（或 `main`）拉分支：`git checkout -b feat/xxx`
+2. 改代码：后端在 `internal/` / `pkg/` / `cmd/`；前端在 `web/src/`
+3. 本地验证：`make test`、`cd web && npm run test`，必要时 `make lint`
+4. 全量确认：`make build` 后用二进制起服务点一遍关键路径
+5. 提交前再跑一遍测试；本仓库 fork 工作流见下方 [Fork 开发工作流](#fork-开发工作流)
+
+配置项说明见 [配置说明](docs/zh/configuration.md)；部署与 systemd 见 [部署指南](docs/zh/deployment.md)。
 
 ## Docker 容器镜像
 

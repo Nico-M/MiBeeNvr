@@ -14,10 +14,10 @@
   ]);
 </script>
 
-<div class="min-h-screen th-bg-primary pt-[68px]">
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="min-h-screen th-bg-primary pt-[var(--navbar-height)]">
+  <main class="page-shell">
     <div class="mb-6">
-      <h2 class="text-2xl font-bold th-text-primary">{t('settings.title')}</h2>
+      <h2 class="page-title">{t('settings.title')}</h2>
     </div>
     <Tab tabs={settingsTabs} activeTab={activeSettingsTab} onchange={(id) => activeSettingsTab = id} />
     <div class="space-y-6 mt-6">

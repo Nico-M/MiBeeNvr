@@ -451,11 +451,11 @@
   });
 </script>
 
-<div class="min-h-screen th-bg-primary pt-[68px]">
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="min-h-screen th-bg-primary pt-[var(--navbar-height)]">
+  <main class="page-shell">
     <!-- Page Header -->
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
-      <h2 class="text-2xl font-bold th-text-primary">{t('cameras.title')}</h2>
+      <h2 class="page-title">{t('cameras.title')}</h2>
       <div class="flex gap-3">
         {#if discoverableProtocols.length > 0}
           <div class="relative">

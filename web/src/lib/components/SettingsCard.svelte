@@ -35,7 +35,7 @@
   }
 </script>
 
-<div class="card border th-border overflow-hidden">
+<div class="card card-flat border th-border overflow-hidden">
   <button
     onclick={toggle}
     class="w-full flex items-start gap-3 p-6 text-left hover:th-bg-hover transition-colors"

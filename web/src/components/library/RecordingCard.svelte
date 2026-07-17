@@ -60,7 +60,7 @@
 
   let formatBadgeClass = $derived.by(() => {
     if (isTimelapse) return 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/50 dark:text-cyan-300';
-    if (isAVI) return 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300';
+    if (isAVI) return 'bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-300';
     if (isVideo) return 'badge-info';
     return 'badge-neutral';
   });
@@ -296,7 +296,7 @@
       <!-- Merge tier badge -->
       {#if isMerged && recording.merge_tier}
         <span
-          class="badge text-[10px] leading-none py-0.5 px-1.5 bg-violet-100 text-violet-800 dark:bg-violet-900/50 dark:text-violet-300"
+          class="badge badge-accent text-[10px] leading-none py-0.5 px-1.5"
         >
           {mergeTierLabel}
         </span>

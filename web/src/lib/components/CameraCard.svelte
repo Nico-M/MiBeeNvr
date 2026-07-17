@@ -135,7 +135,7 @@ let healthShowWarningIcon = $derived(
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-  class="card camera-card border th-border p-4 transition-all {menuOpen ? 'is-menu-open' : ''}"
+  class="card card-flat camera-card border th-border p-4 transition-all {menuOpen ? 'is-menu-open' : ''}"
 >
   <!-- Top: Name + Status -->
   <div class="flex items-start justify-between gap-2 mb-3">
@@ -358,7 +358,7 @@ let healthShowWarningIcon = $derived(
   }
 
   .rec-toggle.is-on {
-    background-color: #22c55e;
+    background-color: var(--color-success);
   }
 
   .rec-toggle .rec-toggle-thumb {

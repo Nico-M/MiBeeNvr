@@ -682,13 +682,13 @@ let batchMerging = $state(false);
   });
 </script>
 
-<div class="min-h-screen th-bg-primary pt-[68px]">
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="min-h-screen th-bg-primary pt-[var(--navbar-height)]">
+  <main class="page-shell">
     <div class="mb-6">
-      <h2 class="text-2xl font-bold th-text-primary mb-4">{t('nav.recordings')}</h2>
+      <h2 class="page-title mb-4">{t('nav.recordings')}</h2>
 
       <!-- ── Filter bar ── -->
-      <div class="card p-4 mb-6 border th-border">
+      <div class="card card-flat p-4 mb-6 border th-border">
         <div class="flex flex-wrap items-end gap-3">
           <div class="flex items-center gap-2 pb-[2px]">
             <FormatFilter bind:selectedFormat={formatPill} />

@@ -82,7 +82,7 @@
 
   function getFormatBadgeClass(recording: Recording): string {
     if (recording.format === 'timelapse') return 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/50 dark:text-cyan-300';
-    if (recording.format === 'avi') return 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300';
+    if (recording.format === 'avi') return 'bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-300';
     if (recording.format === 'h264' || recording.format === 'h265') return 'badge-info';
     return 'badge-neutral';
   }

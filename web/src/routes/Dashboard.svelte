@@ -270,14 +270,14 @@
   });
 </script>
 
-<div class="min-h-screen th-bg-primary pt-[68px]">
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="min-h-screen th-bg-primary pt-[var(--navbar-height)]">
+  <main class="page-shell">
     <div class="mb-6">
-      <h2 class="text-2xl font-bold th-text-primary">{t('nav.dashboard')}</h2>
+      <h2 class="page-title">{t('nav.dashboard')}</h2>
     </div>
 
     <!-- System Resources — compact single-row layout -->
-    <div class="card p-4 border th-border mb-4">
+    <div class="card card-flat p-4 border th-border mb-4">
       {#if loading && !currentSystemStats}
         <div class="flex items-center justify-center py-3">
           <Loader2 size={18} class="th-text-secondary animate-spin" />
@@ -387,8 +387,8 @@
     </div>
 
     <!-- Camera Health — per-camera status list -->
-    <div class="card p-4 border th-border mb-6">
-      <h3 class="text-sm font-semibold th-text-primary mb-3 flex items-center gap-2">
+    <div class="card card-flat p-4 border th-border mb-6">
+      <h3 class="section-label mb-3 flex items-center gap-2 normal-case tracking-normal text-sm font-semibold th-text-primary">
         <Activity size={16} class="text-accent" />
         {t('dashboard.healthSummary')}
       </h3>
@@ -442,13 +442,13 @@
             <div class="spinner spinner-lg"></div>
           </div>
         {:else if lastTrends}
-          <div class="card p-5 border th-border">
+          <div class="card card-flat p-5 border th-border">
             <div class="h-56 sm:h-64">
               <canvas id="dashboardTrendChart"></canvas>
             </div>
           </div>
         {:else}
-          <div class="card p-8 text-center th-text-muted">
+          <div class="card card-flat p-8 text-center th-text-muted">
             <BarChart3 size={32} class="mx-auto mb-2 opacity-50" />
             <p class="text-sm">{t('stats.storageTrend')}</p>
           </div>

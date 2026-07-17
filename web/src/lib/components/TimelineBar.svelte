@@ -71,7 +71,7 @@
   // Format → color class
   const formatColor: Record<string, string> = {
     h264: '#3b82f6', // blue
-    h265: '#a855f7', // purple
+    h265: '#14b8a6', // teal
     mjpeg: '#f97316', // orange
     timelapse: '#10b981', // emerald
   };

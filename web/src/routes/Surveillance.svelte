@@ -396,12 +396,12 @@
   });
 </script>
 
-<div class="min-h-screen th-bg-primary pt-[68px]">
+<div class="min-h-screen th-bg-primary pt-[var(--navbar-height)]">
   <main class="mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6" style="max-width: 100%;">
 
     <!-- Header -->
     <div class="flex items-center justify-between mb-4 sm:mb-6">
-      <h1 class="text-lg sm:text-xl font-bold th-text-primary flex items-center gap-2">
+      <h1 class="page-title text-lg sm:text-xl flex items-center gap-2">
         <Video size={20} class="text-accent" />
         {t('surveillance.title')}
       </h1>
@@ -416,7 +416,7 @@
 
     <!-- Camera configuration panel -->
     {#if configOpen}
-      <div class="card p-4 mb-4">
+      <div class="card card-flat p-4 mb-4 border th-border">
         <h3 class="text-sm font-semibold th-text-primary mb-3">{t('dashboard.selectCameras')}</h3>
         <p class="text-xs th-text-secondary mb-3">{t('dashboard.maxCameras')}</p>
         <div class="space-y-1 max-h-48 overflow-y-auto mb-4">
@@ -624,7 +624,7 @@
             <!-- Streaming protocol badge -->
             {#if mode !== 'unsupported'}
               {@const protocolLabel = mode === 'wasm' ? 'WebCodecs' : mode === 'webrtc' ? 'WebRTC' : mode === 'flv' ? 'FLV' : mode === 'hls' ? (defaultProtocol === 'll-hls' ? 'LL-HLS' : 'HLS') : mode === 'mjpeg' ? 'MJPEG' : 'JPEG'}
-              {@const protocolColor = mode === 'wasm' ? 'bg-cyan-500/60' : mode === 'webrtc' ? 'bg-green-500/60' : mode === 'flv' ? 'bg-orange-500/60' : mode === 'hls' ? (defaultProtocol === 'll-hls' ? 'bg-purple-500/60' : 'bg-blue-500/60') : mode === 'mjpeg' ? 'bg-amber-500/60' : 'bg-gray-500/60'}
+              {@const protocolColor = mode === 'wasm' ? 'bg-cyan-500/60' : mode === 'webrtc' ? 'bg-emerald-500/60' : mode === 'flv' ? 'bg-orange-500/60' : mode === 'hls' ? (defaultProtocol === 'll-hls' ? 'bg-teal-500/60' : 'bg-sky-500/60') : mode === 'mjpeg' ? 'bg-amber-500/60' : 'bg-gray-500/60'}
               <span class="absolute top-2 right-2 z-10 {protocolColor} text-white text-[10px] font-medium px-2 py-0.5 rounded-full pointer-events-none select-none">
                 {protocolLabel}
               </span>

@@ -181,8 +181,8 @@
   });
 </script>
 
-<div class="min-h-screen th-bg-primary pt-[68px]">
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="min-h-screen th-bg-primary pt-[var(--navbar-height)]">
+  <main class="page-shell">
 
     <!-- Health Score Cards -->
     <div class="mb-6">
@@ -221,7 +221,7 @@
               </div>
               <div class="text-center my-1">
                 <span
-                  class="text-2xl font-bold tabular-nums"
+                  class="metric-value text-2xl"
                   style="color: {scoreColor(detail.score)}"
                 >
                   {detail.score}
