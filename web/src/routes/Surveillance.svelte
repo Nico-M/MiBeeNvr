@@ -17,20 +17,25 @@
   import { createReconnectCoordinator } from '$lib/reconnect-coordinator.svelte';
   import { detectMSEH265 } from '$lib/webcodecs-player/capabilities';
 
+  /** Max simultaneous streams on the wall (1 main + up to 6 previews). */
+  const MAX_CAMERAS = 7;
+  const STORAGE_KEY = 'dashboard-selected-cameras';
+  const FOCUS_STORAGE_KEY = 'dashboard-focus-camera';
+
   let cameras = $state<Camera[]>([]);
   let loading = $state(true);
   let error = $state('');
-  let expandedCameraId = $state<string | null>(null);
+  /** Camera shown in the large main pane (others are previews around it). */
+  let focusCameraId = $state<string | null>(null);
 
   // Page Visibility — pause/resume all players when tab hidden/visible
   let tabVisible = $state(true);
 
-  let ptzOpenIndex = $state(-1);
+  let ptzOpenId = $state<string | null>(null);
 
   // Module-level references for onMount/onDestroy cleanup
   let originalFetch: typeof window.fetch | null = null;
   let visibilityHandler: (() => void) | null = null;
-  let fullscreenListener: (() => void) | null = null;
   let cameraGrid: HTMLDivElement | undefined = $state();
 
   let allCameras = $state<Camera[]>([]);
@@ -61,7 +66,6 @@
 
   // Protocol capabilities for capability-based checks
   let protocolsMap = $state<Map<string, ProtocolInfo>>(buildProtocolsMap(DEFAULT_PROTOCOLS));
-  const STORAGE_KEY = 'dashboard-selected-cameras';
 
   // Default streaming protocol from settings
   let defaultProtocol = $state<string>('flv');
@@ -117,7 +121,7 @@
   function toggleCameraSelection(cameraId: string) {
     if (pendingCameraIds.includes(cameraId)) {
       pendingCameraIds = pendingCameraIds.filter(id => id !== cameraId);
-    } else if (pendingCameraIds.length < 4) {
+    } else if (pendingCameraIds.length < MAX_CAMERAS) {
       pendingCameraIds = [...pendingCameraIds, cameraId];
     }
   }
@@ -130,6 +134,10 @@
       .map(id => available.get(id))
       .filter((c): c is Camera => c !== undefined);
     cameras = filtered;
+    // Keep focus if still selected; otherwise first camera
+    if (!filtered.some(c => c.id === focusCameraId)) {
+      setFocusCamera(filtered[0]?.id ?? null);
+    }
     configOpen = false;
   }
 
@@ -137,22 +145,42 @@
     return `/api/cameras/${cameraId}/stream/index.m3u8`;
   }
 
-  function getGridClass(count: number): string {
-    if (count <= 1) return 'grid-cols-1';
-    if (count === 2) return 'grid-cols-1 sm:grid-cols-2';
-    return 'grid-cols-1 sm:grid-cols-2';
+  function loadSavedFocusId(): string | null {
+    try {
+      return localStorage.getItem(FOCUS_STORAGE_KEY);
+    } catch {
+      return null;
+    }
   }
 
-  function getCellClass(camera: Camera, index: number, count: number): string {
-    if (expandedCameraId) {
-      return camera.id === expandedCameraId
-        ? 'col-span-2 row-span-2'
-        : 'hidden';
-    }
-    if (count === 3 && index === 0) {
-      return 'col-span-2';
-    }
-    return '';
+  function setFocusCamera(id: string | null) {
+    focusCameraId = id;
+    try {
+      if (id) localStorage.setItem(FOCUS_STORAGE_KEY, id);
+      else localStorage.removeItem(FOCUS_STORAGE_KEY);
+    } catch { /* ignore */ }
+  }
+
+  /** Promote a preview (or any selected camera) into the main pane. */
+  function promoteToMain(cameraId: string) {
+    if (!cameras.some(c => c.id === cameraId)) return;
+    if (focusCameraId === cameraId) return;
+    setFocusCamera(cameraId);
+  }
+
+  let focusCamera = $derived.by(() => {
+    if (cameras.length === 0) return null;
+    return cameras.find(c => c.id === focusCameraId) ?? cameras[0];
+  });
+
+  let previewCameras = $derived.by(() => {
+    if (!focusCamera) return [];
+    return cameras.filter(c => c.id !== focusCamera!.id);
+  });
+
+  /** CSS modifier class for wall grid density (1–7). */
+  function wallClass(count: number): string {
+    return `wall-${Math.min(Math.max(count, 1), MAX_CAMERAS)}`;
   }
 
   function getStatusBadge(camera: Camera): { class: string; label: string; icon: any; text: string } {
@@ -211,42 +239,14 @@
     }
   });
 
-  // --- Expand / shrink ---
-
-  function expandToHls(cameraId: string) {
-    expandedCameraId = cameraId;
+  /** Double-click a preview to swap it into the main window. */
+  function handleCellDblClick(camera: Camera, isMain: boolean) {
+    if (isMain) return;
+    promoteToMain(camera.id);
   }
-
-  function shrinkToGrid() {
-    expandedCameraId = null;
-  }
-
-  function handleFullscreenChange() {
-    if (!document.fullscreenElement) {
-      shrinkToGrid();
-    }
-  }
-  function handleCellClick(camera: Camera, index: number) {
-    if (expandedCameraId === camera.id) {
-      shrinkToGrid();
-      return;
-    }
-    // Any playable camera (including MJPEG) can be expanded to fullscreen cell.
-    // Snapshot-only and unsupported cameras stay locked to the grid.
-    const mode = getCameraMode(camera);
-    if (mode !== 'snapshot' && mode !== 'unsupported') {
-      expandToHls(camera.id);
-    }
-  }
-  function handleCellDblClick(camera: Camera) {
-    if (expandedCameraId === camera.id) {
-      shrinkToGrid();
-    }
-  }
-
 
   function closePtz() {
-    ptzOpenIndex = -1;
+    ptzOpenId = null;
   }
 
 
@@ -265,14 +265,21 @@
         const available = new Map(activeFetched.map(c => [c.id, c]));
         const filtered = savedIds
           .map(id => available.get(id))
-          .filter((c): c is Camera => c !== undefined);
+          .filter((c): c is Camera => c !== undefined)
+          .slice(0, MAX_CAMERAS);
         selectedCameraIds = filtered.map(c => c.id);
         cameras = filtered;
       } else {
-        cameras = activeFetched.slice(0, 4);
+        cameras = activeFetched.slice(0, MAX_CAMERAS);
         selectedCameraIds = cameras.map(c => c.id);
       }
       pendingCameraIds = [...selectedCameraIds];
+      const savedFocus = loadSavedFocusId();
+      if (savedFocus && cameras.some(c => c.id === savedFocus)) {
+        focusCameraId = savedFocus;
+      } else {
+        focusCameraId = cameras[0]?.id ?? null;
+      }
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
     } finally {
@@ -307,9 +314,6 @@
     } catch (e) {
       console.warn('Failed to load streaming settings:', e);
     }
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    fullscreenListener = handleFullscreenChange;
-
     // Page Visibility API: pause players when tab hidden, resume when visible
     const visHandler = () => {
       tabVisible = !document.hidden;
@@ -331,9 +335,6 @@
   });
 
   onDestroy(() => {
-    if (fullscreenListener) {
-      document.removeEventListener('fullscreenchange', fullscreenListener);
-    }
     if (visibilityHandler) {
       document.removeEventListener('visibilitychange', visibilityHandler);
     }
@@ -343,19 +344,22 @@
     reconnectCoordinator.dispose();
   });
 
-  // Listen for custom 'expand' and 'shrink' events dispatched by player components
+  // Player Maximize button → promote that stream into the main pane
   $effect(() => {
     if (!cameraGrid) return;
     const expandHandler = (e: Event) => {
       const ce = e as CustomEvent<{ cameraId: string }>;
-      expandToHls(ce.detail.cameraId);
+      if (ce.detail?.cameraId) promoteToMain(ce.detail.cameraId);
     };
-    const shrinkHandler = () => shrinkToGrid();
+    // Shrink from main pane is a no-op in wall layout (previews always stay visible)
+    const shrinkHandler = (e: Event) => {
+      e.stopPropagation();
+    };
     cameraGrid.addEventListener('expand', expandHandler);
     cameraGrid.addEventListener('shrink', shrinkHandler);
     return () => {
-      cameraGrid.removeEventListener('expand', expandHandler);
-      cameraGrid.removeEventListener('shrink', shrinkHandler);
+      cameraGrid?.removeEventListener('expand', expandHandler);
+      cameraGrid?.removeEventListener('shrink', shrinkHandler);
     };
   });
 
@@ -400,11 +404,16 @@
   <main class="mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6" style="max-width: 100%;">
 
     <!-- Header -->
-    <div class="flex items-center justify-between mb-4 sm:mb-6">
-      <h1 class="page-title text-lg sm:text-xl flex items-center gap-2">
-        <Video size={20} class="text-accent" />
-        {t('surveillance.title')}
-      </h1>
+    <div class="flex items-center justify-between mb-3 sm:mb-4">
+      <div>
+        <h1 class="page-title text-lg sm:text-xl flex items-center gap-2">
+          <Video size={20} class="text-accent" />
+          {t('surveillance.title')}
+        </h1>
+        {#if cameras.length > 1}
+          <p class="text-xs th-text-tertiary mt-1">{t('surveillance.swapHint')}</p>
+        {/if}
+      </div>
       <button
         class="btn btn-ghost p-2"
         onclick={() => { configOpen = !configOpen; pendingCameraIds = [...selectedCameraIds]; }}
@@ -426,7 +435,7 @@
                 type="checkbox"
                 checked={pendingCameraIds.includes(camera.id)}
                 onchange={() => toggleCameraSelection(camera.id)}
-                disabled={!pendingCameraIds.includes(camera.id) && pendingCameraIds.length >= 4}
+                disabled={!pendingCameraIds.includes(camera.id) && pendingCameraIds.length >= MAX_CAMERAS}
                 class="accent-[var(--color-primary)]"
               />
               <span class="text-sm th-text-primary">{camera.name || camera.id}</span>
@@ -472,33 +481,38 @@
         <h3 class="text-lg font-medium th-text-primary mb-2">{t('dashboard.noCameras')}</h3>
         <p class="th-text-secondary text-sm">{t('dashboard.noCamerasHint')}</p>
       </div>
-    {:else}
-      <!-- Camera grid -->
+    {:else if focusCamera}
+      {@const wallCameras = [focusCamera, ...previewCameras]}
+      <!-- Traditional wall: large main + surrounding previews -->
       <div
-        class="grid gap-2 sm:gap-3 {getGridClass(cameras.length)}"
+        class="surveillance-wall {wallClass(cameras.length)}"
         bind:this={cameraGrid}
       >
-        {#each cameras as camera, index}
-{@const status = getStatusBadge(camera)}
+        {#each wallCameras as camera, index (camera.id)}
+          {@const isMain = index === 0}
+          {@const status = getStatusBadge(camera)}
           {@const mode = getCameraMode(camera)}
           {@const StatusIcon = status.icon}
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div
-            class="relative bg-black rounded-lg overflow-hidden group camera-grid-cell {getCellClass(camera, index, cameras.length)}"
-            class:cell-expanded={expandedCameraId === camera.id}
-            style="min-height: {cameras.length === 1 ? 'calc(100vh - 140px)' : 'calc((100vh - 160px) / 2)'};"
+            class="relative bg-black overflow-hidden group camera-grid-cell"
+            class:cell-main={isMain}
+            class:cell-preview={!isMain}
             role="button"
             tabindex="0"
-            aria-label="{camera.name || camera.id} — {status.text}"
-            onclick={() => handleCellClick(camera, index)}
-            onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCellClick(camera, index); } }}
-            ondblclick={() => handleCellDblClick(camera)}
+            aria-label="{camera.name || camera.id} — {status.text}{isMain ? ` (${t('surveillance.mainPane')})` : ''}"
+            title={!isMain ? t('surveillance.dblClickToMain') : undefined}
+            onkeydown={(e: KeyboardEvent) => {
+              if (!isMain && (e.key === 'Enter' || e.key === ' ')) {
+                e.preventDefault();
+                promoteToMain(camera.id);
+              }
+            }}
+            ondblclick={() => handleCellDblClick(camera, isMain)}
           >
             {#if mode === 'snapshot'}
-              <!-- Snapshot thumbnail mode (HTTP_JPEG cameras) -->
               {#if snapshotLoading[camera.id] && !snapshotUrls[camera.id]}
-                <!-- Initial loading -->
                 <div class="absolute inset-0 flex items-center justify-center bg-black/40">
                   <div class="flex flex-col items-center gap-2">
                     <Loader2 size={24} class="text-white animate-spin" />
@@ -506,20 +520,17 @@
                   </div>
                 </div>
               {:else if snapshotUrls[camera.id]}
-                <!-- Snapshot image -->
                 <img
                   src={snapshotUrls[camera.id]}
                   alt={camera.name || camera.id}
                   class="w-full h-full object-contain"
                 />
-                <!-- Transient error overlay (keeps last good image visible) -->
                 {#if snapshotTransientErrors[camera.id]}
                   <div class="absolute inset-0 bg-black/30 flex items-center justify-center pointer-events-none">
                     <span class="text-white/50 text-xs">{t('dashboard.snapshotError')}</span>
                   </div>
                 {/if}
               {:else if snapshotTransientErrors[camera.id]}
-                <!-- Error with no previous image -->
                 <div class="absolute inset-0 flex items-center justify-center">
                   <div class="flex flex-col items-center gap-2">
                     <ImageOff size={24} class="text-white/40" />
@@ -528,11 +539,9 @@
                 </div>
               {/if}
 
-              <!-- Camera name + status overlay -->
               <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-3 py-2">
                 <div class="flex items-center gap-2">
                   <span class="badge {status.class} text-[10px] px-1.5 py-0.5 flex items-center gap-1">
-
                     <StatusIcon size={10} />
                     {status.text}
                   </span>
@@ -547,7 +556,7 @@
                 streamUrl={getStreamUrl(camera.id)}
                 cameraProtocol={camera.protocol}
                 protocol={defaultProtocol}
-                expanded={expandedCameraId === camera.id}
+                expanded={isMain}
                 {tabVisible}
               />
 
@@ -555,7 +564,7 @@
               <WebRTCPlayer
                 cameraId={camera.id}
                 cameraName={camera.name || camera.id}
-                expanded={expandedCameraId === camera.id}
+                expanded={isMain}
                 {tabVisible}
               />
 
@@ -563,7 +572,7 @@
               <FlvPlayer
                 cameraId={camera.id}
                 cameraName={camera.name || camera.id}
-                expanded={expandedCameraId === camera.id}
+                expanded={isMain}
                 {tabVisible}
                 hasAudio={camera.audio_enabled ?? false}
               />
@@ -572,7 +581,7 @@
               <MjpegLivePlayer
                 cameraId={camera.id}
                 cameraName={camera.name || camera.id}
-                expanded={expandedCameraId === camera.id}
+                expanded={isMain}
               />
             {:else if mode === 'wasm'}
               {#if WasmPlayerComponent}
@@ -580,7 +589,7 @@
                 <WasmPlayer
                   cameraId={camera.id}
                   cameraName={camera.name || camera.id}
-                  expanded={expandedCameraId === camera.id}
+                  expanded={isMain}
                   tabVisible={tabVisible}
                 />
               {:else if wasmPlayerLoading}
@@ -601,7 +610,6 @@
               {/if}
 
             {:else}
-              <!-- Unsupported protocol (no snapshot, no HLS) -->
               <div class="absolute inset-0 flex items-center justify-center">
                 <div class="flex flex-col items-center gap-2 text-center px-4">
                   <VideoOff size={24} class="text-white/40" />
@@ -609,7 +617,6 @@
                   <span class="text-white/30 text-[10px] font-mono">{camera.protocol}</span>
                 </div>
               </div>
-              <!-- Camera name overlay -->
               <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-3 py-2">
                 <div class="flex items-center gap-2">
                   <span class="badge badge-neutral text-[10px] px-1.5 py-0.5 flex items-center gap-1">
@@ -621,16 +628,20 @@
               </div>
             {/if}
 
-            <!-- Streaming protocol badge -->
             {#if mode !== 'unsupported'}
               {@const protocolLabel = mode === 'wasm' ? 'WebCodecs' : mode === 'webrtc' ? 'WebRTC' : mode === 'flv' ? 'FLV' : mode === 'hls' ? (defaultProtocol === 'll-hls' ? 'LL-HLS' : 'HLS') : mode === 'mjpeg' ? 'MJPEG' : 'JPEG'}
               {@const protocolColor = mode === 'wasm' ? 'bg-cyan-500/60' : mode === 'webrtc' ? 'bg-emerald-500/60' : mode === 'flv' ? 'bg-orange-500/60' : mode === 'hls' ? (defaultProtocol === 'll-hls' ? 'bg-teal-500/60' : 'bg-sky-500/60') : mode === 'mjpeg' ? 'bg-amber-500/60' : 'bg-gray-500/60'}
-              <span class="absolute top-2 right-2 z-10 {protocolColor} text-white text-[10px] font-medium px-2 py-0.5 rounded-full pointer-events-none select-none">
+              <span class="absolute top-2 right-2 z-10 {protocolColor} text-white text-[10px] font-medium px-2 py-0.5 rounded-full pointer-events-none select-none {isMain ? 'opacity-90' : 'opacity-80'}">
                 {protocolLabel}
               </span>
             {/if}
 
-            <!-- Health indicator dot + score -->
+            {#if isMain}
+              <span class="absolute bottom-2 right-2 z-10 bg-teal-500/80 text-white text-[10px] font-semibold px-2 py-0.5 rounded pointer-events-none select-none tracking-wide">
+                {t('surveillance.mainPane')}
+              </span>
+            {/if}
+
             {#if healthScores[camera.id] !== undefined}
               {@const hs = healthScores[camera.id]}
               {@const healthColor = hs >= 80 ? 'var(--color-success)' : hs >= 30 ? 'var(--color-warning)' : 'var(--color-danger)'}
@@ -643,8 +654,7 @@
               </span>
             {/if}
 
-            <!-- PTZ Overlay for PTZ-capable cameras -->
-            {#if ptzOpenIndex === index && getProtocolCapabilities(camera.protocol, protocolsMap).ptz}
+            {#if ptzOpenId === camera.id && getProtocolCapabilities(camera.protocol, protocolsMap).ptz}
               <div
                 class="absolute top-2 left-2 z-10"
                 onclick={(e: MouseEvent) => { e.stopPropagation(); }}
@@ -669,31 +679,117 @@
 </div>
 
 <style>
-  /* Grid cell expand/shrink transitions */
+  /* ── Wall grid: 1 large main + surrounding previews ── */
+  .surveillance-wall {
+    display: grid;
+    gap: 0;
+    height: calc(100dvh - var(--navbar-height) - 5.5rem);
+    min-height: 320px;
+    width: 100%;
+    border: 1px solid var(--border);
+    background: var(--border);
+    overflow: hidden;
+    border-radius: var(--radius-sm);
+  }
+
   .camera-grid-cell {
-    transition: opacity var(--duration-normal) var(--ease-out),
-                transform var(--duration-normal) var(--ease-out);
+    min-height: 0;
+    min-width: 0;
+    /* 1px separators via adjacent borders (no gap) */
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    transition: box-shadow var(--duration-fast) var(--ease-out);
   }
 
-  /* Subtle hover lift on grid cells */
-  .camera-grid-cell:not(.hidden):hover {
-    opacity: 0.92;
+  .cell-main {
+    box-shadow: inset 0 0 0 1px rgba(var(--color-primary-rgb), 0.35);
+    z-index: 1;
   }
 
-  /* Fade-in + scale-up when a cell expands */
-  .cell-expanded {
-    animation: cell-expand var(--duration-normal) var(--ease-out);
+  .cell-preview {
+    cursor: pointer;
   }
 
-  @keyframes cell-expand {
-    from {
-      opacity: 0.3;
-      transform: scale(0.96);
+  .cell-preview:hover {
+    box-shadow: inset 0 0 0 1px rgba(var(--color-primary-rgb), 0.4);
+    z-index: 2;
+  }
+
+  .cell-preview:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 2px rgba(var(--color-primary-rgb), 0.55);
+    z-index: 2;
+  }
+
+  /* 1: full main */
+  .wall-1 {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+  }
+  .wall-1 .cell-main {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  /* 2: main | preview */
+  .wall-2 {
+    grid-template-columns: 2.2fr 1fr;
+    grid-template-rows: 1fr;
+  }
+  .wall-2 .cell-main {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  /* 3: main spans 2 rows | 2 previews */
+  .wall-3 {
+    grid-template-columns: 2.2fr 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+  .wall-3 .cell-main {
+    grid-column: 1;
+    grid-row: 1 / -1;
+  }
+
+  /* 4: main | 3 stacked previews */
+  .wall-4 {
+    grid-template-columns: 2.2fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+  }
+  .wall-4 .cell-main {
+    grid-column: 1;
+    grid-row: 1 / -1;
+  }
+
+  /* 5–7: main left, 2-col preview stack on right (classic NVR wall) */
+  .wall-5,
+  .wall-6,
+  .wall-7 {
+    grid-template-columns: 2fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+  }
+  .wall-5 .cell-main,
+  .wall-6 .cell-main,
+  .wall-7 .cell-main {
+    grid-column: 1;
+    grid-row: 1 / -1;
+  }
+
+  /* Mobile: main on top, previews 2-col below */
+  @media (max-width: 767px) {
+    .surveillance-wall {
+      height: auto;
+      min-height: 0;
+      grid-template-columns: 1fr 1fr !important;
+      grid-template-rows: none !important;
+      grid-auto-rows: minmax(140px, 28vh);
     }
-    to {
-      opacity: 1;
-      transform: scale(1);
+
+    .surveillance-wall .cell-main {
+      grid-column: 1 / -1 !important;
+      grid-row: auto !important;
+      min-height: 42vh;
     }
   }
-
 </style>
